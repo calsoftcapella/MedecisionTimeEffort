@@ -1,0 +1,3019 @@
+package com.calsoft.report.action;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Properties;
+import java.util.StringTokenizer;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import com.calsoft.factory.Factory;
+import com.calsoft.leave.form.LeaveForm;
+import com.calsoft.leave.service.LeaveService;
+import com.calsoft.leave.service.factory.LeaveServiceFactory;
+import com.calsoft.report.form.ReportForm;
+import com.calsoft.report.model.Report;
+import com.calsoft.report.service.ReportService;
+import com.calsoft.report.service.ReportServiceFactory;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.task.service.SaveTaskService;
+import com.calsoft.task.service.factory.SaveTaskServiceFactory;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.service.UserService;
+import com.calsoft.util.TimeUtility;
+
+@SuppressWarnings({"unchecked","rawtypes"})
+public class ReportAction extends DispatchAction implements Job{
+
+	private static final Logger logger = Logger.getLogger("name");
+
+	private static String glassfishInstanceRootPropertyName = "com.sun.aas.instanceRoot";
+	private static String glassfishDomainConfigurationFolderName = "/applications/effort";
+	//private static String glassfishDomainConfigurationFolderName = "/eclipseApps/effort";
+	// Read a given file from glassfish Domain Configuration folder
+	public ActionForward displayReport(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		logger.info("You Are Inside displayReport method of ReportAction class");
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null && s1.getAttribute("user_id") != null)   {
+			String year="";
+			String month="";
+			int user_id_from_session = Integer.parseInt(s1.getAttribute("user_id").toString());
+			List<UserForm> selectedUserList = new ArrayList<UserForm>();
+			try{
+				String[] allocatedResource=request.getParameterValues("userId");
+				String[] detailedTeam = request.getParameterValues("team");
+				s1.removeAttribute("selectedDate");
+				String reportMonthYear=request.getParameter("month-settings");
+				int i1 = reportMonthYear.length();
+				int j = reportMonthYear.indexOf("/");
+				int k = reportMonthYear.lastIndexOf("/");
+				month = reportMonthYear.substring(j+1,k);
+				year = reportMonthYear.substring(k+1,i1);	
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<ReportForm> reportList = null;
+				if(allocatedResource!=null){
+					for(int i=0;i<allocatedResource.length;i++){
+						UserForm userform=new UserForm();
+						int userId = Integer.parseInt(allocatedResource[i]);
+						userform.setUserId(userId);
+						selectedUserList.add(userform);
+					}
+					reportList = reportservice.getReportData(year,month,allocatedResource);
+				}
+				else if(detailedTeam!= null){
+					DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(df.parse(reportMonthYear));
+					cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH)); 
+					reportList = reportservice.getReportDataTeamWise(year,month,detailedTeam, cal, user_id_from_session);
+				}
+				s1.setAttribute("reportListForExcel", reportList);
+				ReportForm reportForm=(ReportForm)form;
+				String location = reportForm.getLocation();
+				reportForm.setReportDataList(reportList);
+				request.setAttribute("reportList", reportList);
+				List<String> dayList=new ArrayList<String>();
+				Calendar calendar = Calendar.getInstance();
+				int date = 1;
+				calendar.set(Integer.parseInt(year), Integer.parseInt(month)-1, date);
+				int days = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+				for(int i=1;i<=days;i++){
+					calendar.set(Integer.parseInt(year), Integer.parseInt(month)-1,i);
+					dayList.add(calendar.getTime().toString().substring(0,3));
+				}
+				List<String> dayListForDates = new ArrayList<String>();
+				DateFormat df1 = new SimpleDateFormat("dd/MM/yyyy");
+				DateFormat df2 = new SimpleDateFormat("M/d");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df1.parse(reportMonthYear));
+				for(int i=1;i<=days;i++){
+					cal.set(Integer.parseInt(year), Integer.parseInt(month)-1,i);
+					if(!(cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)){
+						dayListForDates.add(df2.format(cal.getTime()));
+					}
+					else{
+						dayListForDates.add(df2.format(cal.getTime())+" ");
+					}
+				} 				
+				request.setAttribute("dayList", dayList);					// Setted for JSP
+				request.setAttribute("dayListForDates", dayListForDates);	// Setted for JSP
+				s1.setAttribute("dayList", dayList);						// Setted for excel
+				s1.setAttribute("dayListForDates", dayListForDates);		// Setted for excel 
+				request.setAttribute("reportType", "timeSheetDashBoard");
+				s1.setAttribute("selectedDate", reportMonthYear);
+				request.setAttribute("selectedUserList",selectedUserList);
+				request.setAttribute("locationDetail", location);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("displayReport");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getUserDetails(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				logger.info("You Are Currently In getUserDetails method:");
+				UserService userService;
+				userService=Factory.getUserService();
+				List<UserForm> userFormList = userService.getUserNames();
+				UserForm userForm=new UserForm();
+				userForm.setUserId(0);
+				String displaySelectBox="display";
+				userForm.setUserName("Select");
+				userFormList.add(0, userForm);
+				request.setAttribute("displaySelectBox", displaySelectBox);
+				request.setAttribute("list", userFormList);
+
+			}catch(Exception e){
+				logger.error(e);
+				throw new Exception();
+			}
+			return map.findForward("getUserDetails");
+		}
+		else 
+			throw new Exception();
+	}
+	public ActionForward getUserAccessDetails(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				logger.info("You Are Currently In getUserAccessDetails method:");
+				UserService userService;
+				userService=Factory.getUserService();
+				List<UserForm> userFormList = userService.getUserNames();
+				UserForm userForm=new UserForm();
+				userForm.setUserId(0);
+				String displaySelectBox="display";
+				userForm.setUserName("Select");
+				userFormList.add(0, userForm);
+				request.setAttribute("displaySelectBox", displaySelectBox);
+				request.setAttribute("list", userFormList);
+
+			}catch(Exception e){
+				logger.error(e);
+				throw new Exception();
+			}
+			return map.findForward("getUserAccessDetails");
+		}
+		else 
+			throw new Exception();
+	}
+
+	public ActionForward getAllocationList(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getAllocationList");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getAllocationListForResource(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getAllocationListForResource");
+		}
+		else
+			throw new Exception();
+	}
+
+
+	public ActionForward addResources(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));  // Selected user id for request
+				String[] allocatedResource=request.getParameterValues("userIdValueAdd");
+				if(allocatedResource!=null)
+					System.out.println("Allocted user id size is:"+allocatedResource.length);
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				reportservice.addResources(allocatedResource,userId);
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext())
+				{
+					if(count==1)
+					{
+						allocatedList=itr.next();
+					}
+					if(count==2)
+					{
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				//HttpSession session=request.getSession();
+				while(itr1.hasNext())
+				{
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName)))
+					{
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+				request.setAttribute("list",userFormUpdatedList);
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("addResources");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward addResourcesAccess(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));  // Selected user id for request
+				String[] allocatedResource=request.getParameterValues("userIdValueAdd");
+				if(allocatedResource!=null)
+					System.out.println("Allocted user id size is:"+allocatedResource.length);
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				reportservice.addResources(allocatedResource,userId);
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				//HttpSession session=request.getSession();
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+				request.setAttribute("list",userFormUpdatedList);
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("addResourcesAccess");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward deleteResources(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				String[] allocatedResource=request.getParameterValues("userIdValueRemove");
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				reportservice.deleteResources(allocatedResource,userId);
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+				request.setAttribute("list",userFormUpdatedList);
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("deleteResources");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward deleteResourcesAccess(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				String[] allocatedResource=request.getParameterValues("userIdValueRemove");
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				reportservice.deleteResources(allocatedResource,userId);
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+				request.setAttribute("list",userFormUpdatedList);
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("deleteResourcesAccess");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward getUserAccessMapping(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				//get the list of users with the list of resources
+				Iterator<Report> allocatedIterator=allocatedList.iterator();
+				int counter=1;
+				List<Report> updatedAllocatedList=new ArrayList<Report>();
+				while(allocatedIterator.hasNext()){
+					Report report=allocatedIterator.next();
+					if(counter==1){
+						report.setParentUserName(userName);
+						//System.out.println("parent user name is:"+report.getParentUserName());
+					}
+					updatedAllocatedList.add(report);
+					counter++;
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("updatedallocatedList",updatedAllocatedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getUserAccessMapping");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward getUserAccessMappingDetailedList(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext())
+				{
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName)))
+					{
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				//get the list of users with the list of resources
+				Iterator<Report> allocatedIterator=allocatedList.iterator();
+				int counter=1;
+				List<Report> updatedAllocatedList=new ArrayList<Report>();
+				while(allocatedIterator.hasNext())
+				{
+					Report report=allocatedIterator.next();
+					if(counter==1)
+					{
+						report.setParentUserName(userName);
+						//System.out.println("parent user name is:"+report.getParentUserName());
+					}
+					updatedAllocatedList.add(report);
+					counter++;
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("updatedallocatedList",updatedAllocatedList);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e)
+			{
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getUserAccessMappingDetailedList");
+		}
+		else
+			throw new Exception();
+	}
+
+	//get the allocation mapping for all users
+	public ActionForward getAllUserAccessMapping(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				//get all user access mapping
+				List<List<Report>> allocationMappingAllUsers=reportservice.getUserReportAllocation();
+				//logger.info("all user allocation list size is:"+allocationMappingAllUsers.size());
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				//get the list of users with the list of resources
+				List<Report> updatedAllocationListAllUser=new ArrayList<Report>();
+				Report allocationListAllUser=null;
+				Iterator<List<Report>> allocationAllUserIterator= allocationMappingAllUsers.iterator();
+				while(allocationAllUserIterator.hasNext()){
+					List<Report> allocationListUser=allocationAllUserIterator.next();
+					allocationListAllUser=new Report();
+					Iterator<Report> allocatedIterator=allocationListUser.iterator();
+					int counter=1;
+					List<Report> updatedAllocatedList=new ArrayList<Report>();
+					while(allocatedIterator.hasNext()){
+						Report report=allocatedIterator.next();
+						if(counter==1){
+							report.setParentUserName(report.getParentUserName());
+						}
+						updatedAllocatedList.add(report);
+						counter++;
+					}
+					allocationListAllUser.setAllUserAllocationList(updatedAllocatedList);
+					updatedAllocationListAllUser.add(allocationListAllUser);
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("updatedAllocationListAllUser",updatedAllocationListAllUser);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getUserAccessMapping");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getAllUserAccessMappingDetails(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(request.getParameter("userId"));
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList=reportservice.getUserReportAllocation(userId);
+				//get all user access mapping
+				List<List<Report>> allocationMappingAllUsers=reportservice.getUserReportAllocation();
+				Iterator<List<Report>> itr= combinedList.iterator();
+				int count=1;
+				List<Report> unallocatedList=null;
+				List<Report> allocatedList=null;
+				while(itr.hasNext()){
+					if(count==1){
+						allocatedList=itr.next();
+					}
+					if(count==2){
+						unallocatedList=itr.next();
+					}
+					count++;
+				}
+				UserService userService;
+				userService=Factory.getUserService();
+				UserForm userForm=userService.getUsernameFromId(userId);
+				String userName=userForm.getUserName();
+				UserForm userformNew=new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator< UserForm> itr1=userFormList.iterator();
+				List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while(itr1.hasNext()){
+					UserForm userFormValue=itr1.next();
+					if(!(userFormValue.getUserName().equals(userName))){
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				//get the list of users with the list of resources
+				List<Report> updatedAllocationListAllUser=new ArrayList<Report>();
+				Report allocationListAllUser=null;
+				Iterator<List<Report>> allocationAllUserIterator= allocationMappingAllUsers.iterator();
+				while(allocationAllUserIterator.hasNext()){
+					List<Report> allocationListUser=allocationAllUserIterator.next();
+					allocationListAllUser=new Report();
+					Iterator<Report> allocatedIterator=allocationListUser.iterator();
+					int counter=1;
+					List<Report> updatedAllocatedList=new ArrayList<Report>();
+					while(allocatedIterator.hasNext()){
+						Report report=allocatedIterator.next();
+						if(counter==1){
+							report.setParentUserName(report.getParentUserName());
+						}
+						updatedAllocatedList.add(report);
+						counter++;
+					}
+					allocationListAllUser.setAllUserAllocationList(updatedAllocatedList);
+					updatedAllocationListAllUser.add(allocationListAllUser);
+				}
+				request.setAttribute("list",userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList",allocatedList);
+				request.setAttribute("updatedAllocationListAllUser",updatedAllocationListAllUser);
+				request.setAttribute("unallocatedList",unallocatedList);
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getAllUserAccessMappingDetails");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getUserReportDetails(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		//get the resources that are allocated for a particular user 
+		HttpSession s1 = request.getSession();
+		s1.removeAttribute("selectedDate");
+		s1.removeAttribute("conList");
+		s1.removeAttribute("userList");
+		s1.removeAttribute("conListUpdate");
+		if(s1.getAttribute("user_id")!=null){
+			try{
+				int userId=Integer.parseInt(s1.getAttribute("user_id").toString());
+				UserService userService;
+				userService=Factory.getUserService();
+				Calendar cal = Calendar.getInstance();				
+				cal.setTime(Calendar.getInstance().getTime()); // Current Date 
+				List<UserForm> allocatedUserList=userService.getAllocatedResourcesBasedOnStartAndExitDate(userId, cal);
+				String role = userService.getRole(userId);
+				if(role!=null && role.equalsIgnoreCase("acc_Manager")){
+					List<String> conList = userService.getTeamFromContact();				
+					s1.setAttribute("conList",conList);
+				}
+				// Give Access for Location-Wise Report.
+				if(new File(request.getServletContext().getRealPath("getInformation.properties")).exists()){
+					Properties prop = new Properties();					 
+					prop.load(new FileInputStream(request.getServletContext().getRealPath("getInformation.properties")));
+					String userIdForLocationWiseReport =  prop.getProperty("userInfo_userId");
+					if(userId==Integer.parseInt(userIdForLocationWiseReport)){
+						s1.setAttribute("allowedForLocationWiseReport", "allowedForLocationWiseReport");
+					}
+				}
+				s1.setAttribute("userList",allocatedUserList);
+				request.setAttribute("reportType", "noReport");
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getUserReportDetails");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getDetailedTimesheet(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		//get the resources that are allocated for a particular user 
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("user_id")!=null){
+			try{
+				int user_id = Integer.parseInt(s1.getAttribute("user_id").toString());
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String year="";
+				String month="";
+				String[] allocatedResource=request.getParameterValues("userId");
+				String[] detailsTeam =request.getParameterValues("team");
+				s1.setAttribute("allocatedResource", allocatedResource);
+				s1.removeAttribute("selectedDate");
+				String reportMonthYear=request.getParameter("month-settings");
+				int i = reportMonthYear.length();
+				int j = reportMonthYear.indexOf("/");
+				int k = reportMonthYear.lastIndexOf("/");
+				month = reportMonthYear.substring(j+1,k);
+				year = reportMonthYear.substring(k+1,i);
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				List<TaskForm> taskFormList = null;
+				if(allocatedResource != null){
+					taskFormList=saveTaskService.getTaskDetailsUser(allocatedResource, year, month);
+				}
+				else if(detailsTeam != null){
+					taskFormList = saveTaskService.getTaskDetailsTeamWise(detailsTeam, year, month, user_id );
+				}
+				s1.setAttribute("taskFormListExcel", taskFormList);				
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+				s1.setAttribute("selectedDate", reportMonthYear);
+				request.setAttribute("taskFormList", taskFormList);
+				request.setAttribute("reportType", "dashBoardReport");
+				request.setAttribute("monthYearString",reportMonthYear);
+				request.setAttribute("locationDetail", location);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getDetailedTimesheet");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward getLeaveReport(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		//get the resources that are allocated for a particular user 
+		logger.info("From ReportAction getLeaveReport Method ");
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int user_id_from_session = Integer.parseInt(s1.getAttribute("user_id").toString());
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String year="";
+				String month="";
+				String reportMonthYear=request.getParameter("month-settings");
+				StringTokenizer tokenizer=new StringTokenizer(reportMonthYear,"/");
+				while(tokenizer.hasMoreElements()){
+					tokenizer.nextToken();
+					month=tokenizer.nextToken();
+					year=tokenizer.nextToken();
+				}
+				String[] monthName = {"Jan", "Feb",
+						"Mar", "Apr", "May", "Jun", "Jul",
+						"Aug", "Sep", "Oct", "Nov",
+						"Dec"
+				};
+				String monthString = monthName[Integer.parseInt(month)-1];
+				String dateString=monthString+"-"+year;				
+				String[] allocatedResource=request.getParameterValues("userId");
+				String[] teamDetails = request.getParameterValues("team");
+				s1.removeAttribute("selectedDate");
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH)); 
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				if(allocatedResource!=null){	
+					List<LeaveForm> leaveFormList=leaveService.getLeaveDetailsUser(allocatedResource, dateString);
+					request.setAttribute("leaveFormList",leaveFormList);
+					s1.setAttribute("leaveFormListExcel",leaveFormList);
+				}
+				else if(teamDetails!= null){					
+					List<LeaveForm> leaveFormList=leaveService.getLeaveDetailsTeamWise(teamDetails, dateString, user_id_from_session);
+					request.setAttribute("leaveFormList",leaveFormList);
+					s1.setAttribute("leaveFormListExcel",leaveFormList);
+				}				
+				request.setAttribute("reportType", "leaveReport");
+				request.setAttribute("locationDetail", location);
+				s1.setAttribute("selectedDate", reportMonthYear);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getDetailedTimesheet");
+		}
+		else
+			throw new Exception();
+	}
+	//excel leave  report  
+	public void generateLeaveReportExcel(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		//get the resources that are allocated for a particular user 
+		HttpSession sess = request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			FileOutputStream fos = null;
+			try{
+				List<LeaveForm> leaveFormList= (List<LeaveForm>)sess.getAttribute("leaveFormListExcel");
+				request.setAttribute("leaveFormList",leaveFormList);
+				Workbook wb = new XSSFWorkbook();
+				Iterator<LeaveForm> leaveFormIterator=leaveFormList.iterator();	
+				//Creating Single Sheet for leave
+				Sheet sheet = wb.createSheet("Leave Report");
+				//generate the header row
+				Row row1 = sheet.createRow(0);
+				Cell r1c1 = row1.createCell((short) 0);
+				r1c1.setCellValue("Resource Name");
+				Cell r1c2 = row1.createCell((short) 1);
+				r1c2.setCellValue("Leave Availed On");
+				Cell r1c3 = row1.createCell((short) 2);
+				r1c3.setCellValue("Updated On");
+				int count=1;
+				while(leaveFormIterator.hasNext()){
+					LeaveForm leaveForm=leaveFormIterator.next();
+					List<LeaveForm> leaveformList=leaveForm.getLeaveFormList();
+					if(leaveformList!=null&&leaveformList.size()>0){
+						ListIterator<LeaveForm> leaveIterator=leaveformList.listIterator();						
+						while(leaveIterator.hasNext()){
+							Row row = sheet.createRow(count);
+							LeaveForm leaveFormData=leaveIterator.next();
+							Cell r2c1 = row.createCell((short) 0);
+							r2c1.setCellValue(leaveFormData.getUserName());
+							Cell r2c2 = row.createCell((short) 1);
+							r2c2.setCellValue(leaveFormData.getSelectMonth());
+							Cell r2c3 = row.createCell((short) 2);
+							r2c3.setCellValue(leaveFormData.getUpdatedDateString());
+							count++;
+						}
+						count++;
+					}
+				}
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"LeaveReport_"+file_name+".xlsx");
+				OutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+	}
+	//Generate Time Sheet reports
+	public void generateDetailedTimesheetReport(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		//get the resources that are allocated for a particular user 
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			FileOutputStream fos = null;
+			try{
+				List<TaskForm> taskFormList = (List<TaskForm>) s1.getAttribute("taskFormListExcel");
+				request.setAttribute("taskFormList", taskFormList);
+				Workbook wb = new XSSFWorkbook();
+				Iterator<TaskForm> leaveFormIterator=taskFormList.iterator();	
+				//Creating only Single Sheet For Detailed Timesheet-----------------Started.				
+				Sheet sheet = wb.createSheet("Detailed Timesheet");
+				CellStyle cellSt =  wb.createCellStyle();
+				Font font = wb.createFont();
+				font.setColor(Font.COLOR_RED);
+				cellSt.setFont(font); 
+				XSSFFont fontComp = (XSSFFont)wb.createFont();
+				CellStyle cell =  wb.createCellStyle();
+				fontComp.setColor(new XSSFColor(new java.awt.Color(34,139,34)));
+				cell.setFont(fontComp);  
+				//generate the header row
+				Row row1 = sheet.createRow(0);
+				Cell r1c1 = row1.createCell((short) 0);
+				r1c1.setCellValue("Username");
+				Cell r1c2 = row1.createCell((short) 1);
+				r1c2.setCellValue("Date");
+				Cell r1c3 = row1.createCell((short) 2);
+				r1c3.setCellValue("Category");
+				Cell r1c4 = row1.createCell((short) 3);
+				r1c4.setCellValue("Backlog ID");
+				Cell r1c5 = row1.createCell((short) 4);
+				r1c5.setCellValue("Task ID");
+				Cell r1c6 = row1.createCell((short) 5);
+				r1c6.setCellValue("Description");
+				Cell r1c7 = row1.createCell((short) 6);
+				r1c7.setCellValue("Efforts From");				
+				Cell r1c8 = row1.createCell((int) 7);
+				r1c8.setCellValue("Time Spend in Hrs");				
+				//Creating only Single Sheet For Detailed Timesheet----------------- Ends Here.
+				int count=1;
+				while(leaveFormIterator.hasNext()){
+					TaskForm taskForm=leaveFormIterator.next();
+					List<TaskForm> taskFormListValue=taskForm.getTaskFormList();
+					if(taskFormListValue!=null&&taskFormListValue.size()>0){
+						ListIterator<TaskForm> taskIterator=taskFormListValue.listIterator();					
+						while(taskIterator.hasNext()){
+							Row row = sheet.createRow(count);
+							TaskForm taskFormData=taskIterator.next();
+							Cell r2c1 = row.createCell((short) 0);
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c1.setCellStyle(cell);
+								r2c1.setCellValue(taskFormData.getUserName());
+							}
+							else{
+								r2c1.setCellValue(taskFormData.getUserName());
+							}
+							Cell r2c2 = row.createCell((short) 1);	
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c2.setCellStyle(cell);
+								r2c2.setCellValue(taskFormData.getTask_date());
+							}
+							else{
+								r2c2.setCellValue(taskFormData.getTask_date());
+							}
+							Cell r2c3 = row.createCell((short) 2);
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c3.setCellStyle(cell);
+								r2c3.setCellValue(taskFormData.getStatus());
+							}
+							else{
+								r2c3.setCellValue(taskFormData.getStatus());
+							}
+							Cell r2c4 = row.createCell((short) 3);
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c4.setCellStyle(cell);
+								r2c4.setCellValue(taskFormData.getBacklog_id());
+							}
+							else{
+								r2c4.setCellValue(taskFormData.getBacklog_id());
+							}
+							Cell r2c5 = row.createCell((short) 4);
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c5.setCellStyle(cell);
+								r2c5.setCellValue(taskFormData.getTask_id());
+							}else{
+								r2c5.setCellValue(taskFormData.getTask_id());
+							}
+							Cell r2c6 = row.createCell((short) 5);
+							if(taskFormData.getStatus().equalsIgnoreCase("Comp off")){
+								r2c6.setCellStyle(cell);
+								r2c6.setCellValue(taskFormData.getTask_description());
+							}else{
+								r2c6.setCellValue(taskFormData.getTask_description());
+							}														
+							Cell r2c7 = row.createCell((short) 6);
+							String status = taskFormData.getWork_status();
+							if(status!=null && status.equalsIgnoreCase("office")){
+								status = "Office";
+							}
+							else if(status!=null && status.equalsIgnoreCase("home")){
+								status = "Home";
+							}
+							if(taskFormData!=null && (taskFormData.getStatus()).equalsIgnoreCase("Comp off")){
+								r2c7.setCellStyle(cell);
+								r2c7.setCellValue(status);
+							}
+							else{
+								r2c7.setCellValue(status);
+							}																					
+							Cell r2c8 = row.createCell((int) 7);
+							if(taskFormData!=null && (taskFormData.getStatus()).equalsIgnoreCase("Half Day")||taskFormData!=null && (taskFormData.getStatus()).equalsIgnoreCase("Leave")){
+								r2c8.setCellStyle(cellSt);
+								r2c8.setCellValue(Double.parseDouble(taskFormData.getTime()));
+							}
+							else if(taskFormData!=null && (taskFormData.getStatus()).equalsIgnoreCase("Public holiday")){
+								XSSFFont font1 = (XSSFFont)wb.createFont();
+								CellStyle cellSt1 =  wb.createCellStyle();
+								font1.setColor(new XSSFColor(new java.awt.Color(0, 0, 255)));
+								cellSt1.setFont(font1);  
+								r2c8.setCellStyle(cellSt1);
+								r2c8.setCellValue(Double.parseDouble(taskFormData.getTime()));
+							}	
+							else if(taskFormData!=null && (taskFormData.getStatus()).equalsIgnoreCase("Comp off")){
+								r2c8.setCellStyle(cell);
+								r2c8.setCellValue(Double.parseDouble(taskFormData.getTime()));
+							}
+							else
+							{								
+								r2c8.setCellValue(Double.parseDouble(taskFormData.getTime()));
+							}
+							count++;
+						}																												
+						count++;						
+					}						
+				}				
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"DetailedTimesheetReport_"+file_name+".xlsx");				
+				OutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+	}
+
+	public void generateReportTimeSheetDashBoard(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			List<String> dayList = (List)sess.getAttribute("dayList");
+			List<String> dayListForDates = (List)sess.getAttribute("dayListForDates");
+			int dayCountInMonth = 0 ;
+			if(dayListForDates != null){
+				dayCountInMonth = dayListForDates.size();
+			}
+			FileOutputStream fos = null;
+			try{
+				List<ReportForm> reportList = (List<ReportForm>) sess.getAttribute("reportListForExcel");
+				ReportForm reportForm=(ReportForm)form;
+				reportForm.setReportDataList(reportList);
+				request.setAttribute("reportList", reportList);
+				Workbook wb = new XSSFWorkbook();
+				//CreationHelper createHelper = wb.getCreationHelper();
+				Iterator<ReportForm> timeSheetDashBoardIterator=reportList.iterator();	
+				/*HSSFSheet sheet = workbook.createSheet("Sheet1");*/
+				Sheet sheet = wb.createSheet("Timesheet");
+				CellStyle cellSt =  wb.createCellStyle();			
+				Font font = wb.createFont();			
+				font.setColor(Font.COLOR_RED);			
+				cellSt.setFont(font); 
+				CellStyle cellSt1 =  wb.createCellStyle();			
+				cellSt1.setFillForegroundColor(IndexedColors.PINK.getIndex());
+				cellSt1.setFillPattern(CellStyle.FINE_DOTS);
+				Row row1 = sheet.createRow((short) 0);
+				Cell r1c1 = row1.createCell(0);			
+				r1c1.setCellValue("Username");
+				Iterator<String> itr = dayList.iterator();
+				Iterator<String> itrForDateFormat = dayListForDates.iterator();
+				int rowCount = 1;
+				while (itr.hasNext() && itrForDateFormat.hasNext()) {
+					String string = (String) itr.next();
+					String dateValue = (String) itrForDateFormat.next();
+					Cell r1c2 = row1.createCell((short) rowCount);
+					if(string.equalsIgnoreCase("Sun")||string.equalsIgnoreCase("Sat")){				
+						r1c2.setCellValue(dateValue);					
+						r1c2.setCellStyle(cellSt1);
+					}
+					else{					
+						r1c2.setCellValue(dateValue);
+					}
+					rowCount++;
+				}
+				Cell r1c33 = row1.createCell((short) rowCount);
+				r1c33.setCellValue("Total Time In Hrs");
+				int count=1;
+				XSSFFont font1 = (XSSFFont)wb.createFont();
+				CellStyle cellSt11 =  wb.createCellStyle();
+				font1.setColor(new XSSFColor(new java.awt.Color(0, 0, 255)));
+				cellSt11.setFont(font1); 	
+				XSSFFont fontComp = (XSSFFont)wb.createFont();
+				CellStyle cellComp =  wb.createCellStyle();
+				fontComp.setColor(new XSSFColor(new java.awt.Color(34,139,34)));
+				cellComp.setFont(fontComp); 
+				while(timeSheetDashBoardIterator.hasNext()){
+					ReportForm reportFormValue=timeSheetDashBoardIterator.next();
+					Row row = sheet.createRow((short)count);
+					Cell r2c1 = row.createCell((short) 0);
+					r2c1.setCellValue(reportFormValue.getUserName());
+					Cell r2c2 = row.createCell((short) 1);
+					if(reportFormValue.getTime1()!="" &&  reportFormValue.getTime1().charAt(reportFormValue.getTime1().length()-3) ==' '){
+						r2c2.setCellStyle(cellComp);
+						r2c2.setCellValue(reportFormValue.getTime1());
+					}
+					else if(reportFormValue.getTime1()!="" &&  reportFormValue.getTime1().charAt(reportFormValue.getTime1().length()-2) ==' '){
+						r2c2.setCellStyle(cellSt11);
+						r2c2.setCellValue(reportFormValue.getTime1());
+					}
+					else if(reportFormValue.getTime1()!="" &&  reportFormValue.getTime1().charAt(reportFormValue.getTime1().length()-1) ==' '){
+						r2c2.setCellStyle(cellSt);
+						r2c2.setCellValue(reportFormValue.getTime1());
+					}
+					else{
+						r2c2.setCellValue(reportFormValue.getTime1());
+					}
+					Cell r2c3 = row.createCell((short) 2);
+					if(reportFormValue.getTime2()!="" && reportFormValue.getTime2().charAt(reportFormValue.getTime2().length()-3) ==' '){
+						r2c3.setCellStyle(cellComp);
+						r2c3.setCellValue(reportFormValue.getTime2());
+					}
+					else if(reportFormValue.getTime2()!="" && reportFormValue.getTime2().charAt(reportFormValue.getTime2().length()-2) ==' '){
+						r2c3.setCellStyle(cellSt11);
+						r2c3.setCellValue(reportFormValue.getTime2());
+					}
+					else if(reportFormValue.getTime2()!="" && reportFormValue.getTime2().charAt(reportFormValue.getTime2().length()-1) ==' '){
+						r2c3.setCellStyle(cellSt);
+						r2c3.setCellValue(reportFormValue.getTime2());
+					}
+					else{
+						r2c3.setCellValue(reportFormValue.getTime2());
+					}
+
+					Cell r2c4 = row.createCell((short) 3);
+					if(reportFormValue.getTime3()!="" && reportFormValue.getTime3().charAt(reportFormValue.getTime3().length()-3) ==' '){
+						r2c4.setCellStyle(cellComp);
+						r2c4.setCellValue(reportFormValue.getTime3());
+					}
+					else if(reportFormValue.getTime3()!="" && reportFormValue.getTime3().charAt(reportFormValue.getTime3().length()-2) ==' '){
+						r2c4.setCellStyle(cellSt11);
+						r2c4.setCellValue(reportFormValue.getTime3());
+					}
+					else if(reportFormValue.getTime3()!="" && reportFormValue.getTime3().charAt(reportFormValue.getTime3().length()-1) ==' '){
+						r2c4.setCellStyle(cellSt);
+						r2c4.setCellValue(reportFormValue.getTime3());
+					}
+					else{
+						r2c4.setCellValue(reportFormValue.getTime3());
+					}
+					Cell r2c5 = row.createCell((short) 4);
+					if(reportFormValue.getTime4()!="" && reportFormValue.getTime4().charAt(reportFormValue.getTime4().length()-3) ==' '){
+						r2c5.setCellStyle(cellComp);
+						r2c5.setCellValue(reportFormValue.getTime4());
+					}
+					else if(reportFormValue.getTime4()!="" && reportFormValue.getTime4().charAt(reportFormValue.getTime4().length()-2) ==' '){
+						r2c5.setCellStyle(cellSt11);
+						r2c5.setCellValue(reportFormValue.getTime4());
+					}
+					else if(reportFormValue.getTime4()!="" && reportFormValue.getTime4().charAt(reportFormValue.getTime4().length()-1) ==' '){
+						r2c5.setCellStyle(cellSt);
+						r2c5.setCellValue(reportFormValue.getTime4());
+					}
+					else{
+						r2c5.setCellValue(reportFormValue.getTime4());
+					}
+					Cell r2c6 = row.createCell((short) 5);
+
+					if(reportFormValue.getTime5()!="" && reportFormValue.getTime5().charAt(reportFormValue.getTime5().length()-3) ==' ')
+					{
+						r2c6.setCellStyle(cellComp);
+						r2c6.setCellValue(reportFormValue.getTime5());
+					}
+					else if(reportFormValue.getTime5()!="" && reportFormValue.getTime5().charAt(reportFormValue.getTime5().length()-2) ==' ')
+					{
+						r2c6.setCellStyle(cellSt11);
+						r2c6.setCellValue(reportFormValue.getTime5());
+					}
+					else if(reportFormValue.getTime5()!="" && reportFormValue.getTime5().charAt(reportFormValue.getTime5().length()-1) ==' ')
+					{
+						r2c6.setCellStyle(cellSt);
+						r2c6.setCellValue(reportFormValue.getTime5());
+					}
+					else
+					{
+						r2c6.setCellValue(reportFormValue.getTime5());
+					}
+					Cell r2c7 = row.createCell((short) 6);
+					if(reportFormValue.getTime6()!="" && reportFormValue.getTime6().charAt(reportFormValue.getTime6().length()-3) ==' ')
+					{
+						r2c7.setCellStyle(cellComp);
+						r2c7.setCellValue(reportFormValue.getTime6());
+					}
+					else if(reportFormValue.getTime6()!="" && reportFormValue.getTime6().charAt(reportFormValue.getTime6().length()-2) ==' ')
+					{
+						r2c7.setCellStyle(cellSt11);
+						r2c7.setCellValue(reportFormValue.getTime6());
+					}
+					else if(reportFormValue.getTime6()!="" && reportFormValue.getTime6().charAt(reportFormValue.getTime6().length()-1) ==' ')
+					{
+						r2c7.setCellStyle(cellSt);
+						r2c7.setCellValue(reportFormValue.getTime6());
+					}
+					else
+					{
+						r2c7.setCellValue(reportFormValue.getTime6());
+					}
+
+					Cell r2c8 = row.createCell((short) 7);
+					if(reportFormValue.getTime7()!="" && reportFormValue.getTime7().charAt(reportFormValue.getTime7().length()-3) ==' ')
+					{
+						r2c8.setCellStyle(cellComp);
+						r2c8.setCellValue(reportFormValue.getTime7());
+					}
+					else if(reportFormValue.getTime7()!="" && reportFormValue.getTime7().charAt(reportFormValue.getTime7().length()-2) ==' ')
+					{
+						r2c8.setCellStyle(cellSt11);
+						r2c8.setCellValue(reportFormValue.getTime7());
+					}
+					else if(reportFormValue.getTime7()!="" && reportFormValue.getTime7().charAt(reportFormValue.getTime7().length()-1) ==' ')
+					{
+						r2c8.setCellStyle(cellSt);
+						r2c8.setCellValue(reportFormValue.getTime7());
+					}
+					else
+					{
+						r2c8.setCellValue(reportFormValue.getTime7());
+					}
+
+					Cell r2c9= row.createCell((short) 8);
+					if(reportFormValue.getTime8()!="" && reportFormValue.getTime8().charAt(reportFormValue.getTime8().length()-3) ==' ')
+					{
+						r2c9.setCellStyle(cellComp);
+						r2c9.setCellValue(reportFormValue.getTime8());
+					}
+					else if(reportFormValue.getTime8()!="" && reportFormValue.getTime8().charAt(reportFormValue.getTime8().length()-2) ==' ')
+					{
+						r2c9.setCellStyle(cellSt11);
+						r2c9.setCellValue(reportFormValue.getTime8());
+					}
+					else if(reportFormValue.getTime8()!="" && reportFormValue.getTime8().charAt(reportFormValue.getTime8().length()-1) ==' ')
+					{
+						r2c9.setCellStyle(cellSt);
+						r2c9.setCellValue(reportFormValue.getTime8());
+					}
+					else
+					{
+						r2c9.setCellValue(reportFormValue.getTime8());
+					}
+
+					Cell r2c10 = row.createCell((short) 9);
+					if(reportFormValue.getTime9()!="" && reportFormValue.getTime9().charAt(reportFormValue.getTime9().length()-3) ==' ')
+					{
+						r2c10.setCellStyle(cellComp);
+						r2c10.setCellValue(reportFormValue.getTime9());
+					}
+					else if(reportFormValue.getTime9()!="" && reportFormValue.getTime9().charAt(reportFormValue.getTime9().length()-2) ==' ')
+					{
+						r2c10.setCellStyle(cellSt11);
+						r2c10.setCellValue(reportFormValue.getTime9());
+					}
+					else if(reportFormValue.getTime9()!="" && reportFormValue.getTime9().charAt(reportFormValue.getTime9().length()-1) ==' ')
+					{
+						r2c10.setCellStyle(cellSt);
+						r2c10.setCellValue(reportFormValue.getTime9());
+					}
+					else
+					{
+						r2c10.setCellValue(reportFormValue.getTime9());
+					}
+					Cell r2c11= row.createCell((short) 10);
+					if(reportFormValue.getTime10()!="" && reportFormValue.getTime10().charAt(reportFormValue.getTime10().length()-3) ==' ')
+					{
+						r2c11.setCellStyle(cellComp);
+						r2c11.setCellValue(reportFormValue.getTime10());
+					}
+					else if(reportFormValue.getTime10()!="" && reportFormValue.getTime10().charAt(reportFormValue.getTime10().length()-2) ==' ')
+					{
+						r2c11.setCellStyle(cellSt11);
+						r2c11.setCellValue(reportFormValue.getTime10());
+					}
+					else if(reportFormValue.getTime10()!="" && reportFormValue.getTime10().charAt(reportFormValue.getTime10().length()-1) ==' ')
+					{
+						r2c11.setCellStyle(cellSt);
+						r2c11.setCellValue(reportFormValue.getTime10());
+					}
+					else
+					{
+						r2c11.setCellValue(reportFormValue.getTime10());
+					}
+					Cell r2c12 = row.createCell((short) 11);
+					if(reportFormValue.getTime11()!="" && reportFormValue.getTime11().charAt(reportFormValue.getTime11().length()-3) ==' ')
+					{
+						r2c12.setCellStyle(cellComp);
+						r2c12.setCellValue(reportFormValue.getTime11());
+					}
+					else if(reportFormValue.getTime11()!="" && reportFormValue.getTime11().charAt(reportFormValue.getTime11().length()-2) ==' ')
+					{
+						r2c12.setCellStyle(cellSt11);
+						r2c12.setCellValue(reportFormValue.getTime11());
+					}
+					else if(reportFormValue.getTime11()!="" && reportFormValue.getTime11().charAt(reportFormValue.getTime11().length()-1) ==' ')
+					{
+						r2c12.setCellStyle(cellSt);
+						r2c12.setCellValue(reportFormValue.getTime11());
+					}
+					else
+					{
+						r2c12.setCellValue(reportFormValue.getTime11());
+					}
+					Cell r2c13 = row.createCell((short) 12);
+					if(reportFormValue.getTime12()!="" && reportFormValue.getTime12().charAt(reportFormValue.getTime12().length()-3) ==' ')
+					{
+						r2c13.setCellStyle(cellComp);
+						r2c13.setCellValue(reportFormValue.getTime12());
+					}
+					else if(reportFormValue.getTime12()!="" && reportFormValue.getTime12().charAt(reportFormValue.getTime12().length()-2) ==' ')
+					{
+						r2c13.setCellStyle(cellSt11);
+						r2c13.setCellValue(reportFormValue.getTime12());
+					}
+					else if(reportFormValue.getTime12()!="" && reportFormValue.getTime12().charAt(reportFormValue.getTime12().length()-1) ==' ')
+					{
+						r2c13.setCellStyle(cellSt);
+						r2c13.setCellValue(reportFormValue.getTime12());
+					}
+					else
+					{
+						r2c13.setCellValue(reportFormValue.getTime12());
+					}
+					Cell r2c14= row.createCell((short)13);
+					if(reportFormValue.getTime13()!="" && reportFormValue.getTime13().charAt(reportFormValue.getTime13().length()-3) ==' ')
+					{
+						r2c14.setCellStyle(cellComp);
+						r2c14.setCellValue(reportFormValue.getTime13());
+					}
+					else if(reportFormValue.getTime13()!="" && reportFormValue.getTime13().charAt(reportFormValue.getTime13().length()-2) ==' ')
+					{
+						r2c14.setCellStyle(cellSt11);
+						r2c14.setCellValue(reportFormValue.getTime13());
+					}
+					else if(reportFormValue.getTime13()!="" && reportFormValue.getTime13().charAt(reportFormValue.getTime13().length()-1) ==' ')
+					{
+						r2c14.setCellStyle(cellSt);
+						r2c14.setCellValue(reportFormValue.getTime13());
+					}
+					else
+					{
+						r2c14.setCellValue(reportFormValue.getTime13());
+					}
+					Cell r2c15 = row.createCell((short) 14);
+					if(reportFormValue.getTime14()!="" && reportFormValue.getTime14().charAt(reportFormValue.getTime14().length()-3) ==' ')
+					{
+						r2c15.setCellStyle(cellComp);
+						r2c15.setCellValue(reportFormValue.getTime14());
+					}
+					else if(reportFormValue.getTime14()!="" && reportFormValue.getTime14().charAt(reportFormValue.getTime14().length()-2) ==' ')
+					{
+						r2c15.setCellStyle(cellSt11);
+						r2c15.setCellValue(reportFormValue.getTime14());
+					}
+					else if(reportFormValue.getTime14()!="" && reportFormValue.getTime14().charAt(reportFormValue.getTime14().length()-1) ==' ')
+					{
+						r2c15.setCellStyle(cellSt);
+						r2c15.setCellValue(reportFormValue.getTime14());
+					}
+					else
+					{
+						r2c15.setCellValue(reportFormValue.getTime14());
+					}
+					Cell r2c16 = row.createCell((short) 15);
+					if(reportFormValue.getTime15()!="" && reportFormValue.getTime15().charAt(reportFormValue.getTime15().length()-3) ==' ')
+					{
+						r2c16.setCellStyle(cellComp);
+						r2c16.setCellValue(reportFormValue.getTime15());
+					}
+					else if(reportFormValue.getTime15()!="" && reportFormValue.getTime15().charAt(reportFormValue.getTime15().length()-2) ==' ')
+					{
+						r2c16.setCellStyle(cellSt11);
+						r2c16.setCellValue(reportFormValue.getTime15());
+					}
+					else if(reportFormValue.getTime15()!="" && reportFormValue.getTime15().charAt(reportFormValue.getTime15().length()-1) ==' ')
+					{
+						r2c16.setCellStyle(cellSt);
+						r2c16.setCellValue(reportFormValue.getTime15());
+					}
+					else
+					{
+						r2c16.setCellValue(reportFormValue.getTime15());
+					}
+					Cell r2c17 = row.createCell((short) 16);
+					if(reportFormValue.getTime16()!="" && reportFormValue.getTime16().charAt(reportFormValue.getTime16().length()-3) ==' ')
+					{
+						r2c17.setCellStyle(cellComp);
+						r2c17.setCellValue(reportFormValue.getTime16());
+					}
+					else if(reportFormValue.getTime16()!="" && reportFormValue.getTime16().charAt(reportFormValue.getTime16().length()-2) ==' ')
+					{
+						r2c17.setCellStyle(cellSt11);
+						r2c17.setCellValue(reportFormValue.getTime16());
+					}
+					else if(reportFormValue.getTime16()!="" && reportFormValue.getTime16().charAt(reportFormValue.getTime16().length()-1) ==' ')
+					{
+						r2c17.setCellStyle(cellSt);
+						r2c17.setCellValue(reportFormValue.getTime16());
+					}
+					else
+					{
+						r2c17.setCellValue(reportFormValue.getTime16());
+					}
+					Cell r2c18= row.createCell((short) 17);
+					if(reportFormValue.getTime17()!="" && reportFormValue.getTime17().charAt(reportFormValue.getTime17().length()-3) ==' ')
+					{
+						r2c18.setCellStyle(cellComp);
+						r2c18.setCellValue(reportFormValue.getTime17());
+					}
+					else if(reportFormValue.getTime17()!="" && reportFormValue.getTime17().charAt(reportFormValue.getTime17().length()-2) ==' ')
+					{
+						r2c18.setCellStyle(cellSt11);
+						r2c18.setCellValue(reportFormValue.getTime17());
+					}
+					else if(reportFormValue.getTime17()!="" && reportFormValue.getTime17().charAt(reportFormValue.getTime17().length()-1) ==' ')
+					{
+						r2c18.setCellStyle(cellSt);
+						r2c18.setCellValue(reportFormValue.getTime17());
+					}
+					else
+					{
+						r2c18.setCellValue(reportFormValue.getTime17());
+					}
+					Cell r2c19 = row.createCell((short)18);
+					if(reportFormValue.getTime18()!="" && reportFormValue.getTime18().charAt(reportFormValue.getTime18().length()-3) ==' ')
+					{
+						r2c19.setCellStyle(cellComp);
+						r2c19.setCellValue(reportFormValue.getTime18());
+					}
+					else if(reportFormValue.getTime18()!="" && reportFormValue.getTime18().charAt(reportFormValue.getTime18().length()-2) ==' ')
+					{
+						r2c19.setCellStyle(cellSt11);
+						r2c19.setCellValue(reportFormValue.getTime18());
+					}
+					else if(reportFormValue.getTime18()!="" && reportFormValue.getTime18().charAt(reportFormValue.getTime18().length()-1) ==' ')
+					{
+						r2c19.setCellStyle(cellSt);
+						r2c19.setCellValue(reportFormValue.getTime18());
+					}
+					else
+					{
+						r2c19.setCellValue(reportFormValue.getTime18());
+					}
+					Cell r2c20 = row.createCell((short) 19);
+					if(reportFormValue.getTime19()!="" && reportFormValue.getTime19().charAt(reportFormValue.getTime19().length()-3) ==' ')
+					{
+						r2c20.setCellStyle(cellComp);
+						r2c20.setCellValue(reportFormValue.getTime19());
+					}
+					else if(reportFormValue.getTime19()!="" && reportFormValue.getTime19().charAt(reportFormValue.getTime19().length()-2) ==' ')
+					{
+						r2c20.setCellStyle(cellSt11);
+						r2c20.setCellValue(reportFormValue.getTime19());
+					}
+					else if(reportFormValue.getTime19()!="" && reportFormValue.getTime19().charAt(reportFormValue.getTime19().length()-1) ==' ')
+					{
+						r2c20.setCellStyle(cellSt);
+						r2c20.setCellValue(reportFormValue.getTime19());
+					}
+					else
+					{
+						r2c20.setCellValue(reportFormValue.getTime19());
+					}
+					Cell r2c21 = row.createCell((short) 20);
+					if(reportFormValue.getTime20()!="" && reportFormValue.getTime20().charAt(reportFormValue.getTime20().length()-3) ==' ')
+					{
+						r2c21.setCellStyle(cellComp);
+						r2c21.setCellValue(reportFormValue.getTime20());
+					}
+					else if(reportFormValue.getTime20()!="" && reportFormValue.getTime20().charAt(reportFormValue.getTime20().length()-2) ==' '){
+						r2c21.setCellStyle(cellSt11);
+						r2c21.setCellValue(reportFormValue.getTime20());
+					}
+					else if(reportFormValue.getTime20()!="" && reportFormValue.getTime20().charAt(reportFormValue.getTime20().length()-1) ==' '){
+						r2c21.setCellStyle(cellSt);
+						r2c21.setCellValue(reportFormValue.getTime20());
+					}
+					else{
+						r2c21.setCellValue(reportFormValue.getTime20());
+					}
+					Cell r2c22 = row.createCell((short) 21);
+					if(reportFormValue.getTime21()!="" && reportFormValue.getTime21().charAt(reportFormValue.getTime21().length()-3) ==' '){
+						r2c22.setCellStyle(cellComp);
+						r2c22.setCellValue(reportFormValue.getTime21());
+					}
+					else if(reportFormValue.getTime21()!="" && reportFormValue.getTime21().charAt(reportFormValue.getTime21().length()-2) ==' '){
+						r2c22.setCellStyle(cellSt11);
+						r2c22.setCellValue(reportFormValue.getTime21());
+					}
+					else if(reportFormValue.getTime21()!="" && reportFormValue.getTime21().charAt(reportFormValue.getTime21().length()-1) ==' '){
+						r2c22.setCellStyle(cellSt);
+						r2c22.setCellValue(reportFormValue.getTime21());
+					}
+					else{
+						r2c22.setCellValue(reportFormValue.getTime21());
+					}
+					Cell r2c23 = row.createCell((short) 22);
+					if(reportFormValue.getTime22()!="" && reportFormValue.getTime22().charAt(reportFormValue.getTime22().length()-3) ==' '){
+						r2c23.setCellStyle(cellComp);
+						r2c23.setCellValue(reportFormValue.getTime22());
+					}
+					else if(reportFormValue.getTime22()!="" && reportFormValue.getTime22().charAt(reportFormValue.getTime22().length()-2) ==' '){
+						r2c23.setCellStyle(cellSt11);
+						r2c23.setCellValue(reportFormValue.getTime22());
+					}
+					else if(reportFormValue.getTime22()!="" && reportFormValue.getTime22().charAt(reportFormValue.getTime22().length()-1) ==' '){
+						r2c23.setCellStyle(cellSt);
+						r2c23.setCellValue(reportFormValue.getTime22());
+					}
+					else{
+						r2c23.setCellValue(reportFormValue.getTime22());
+					}
+					Cell r2c24 = row.createCell((short) 23);
+					if(reportFormValue.getTime23()!="" && reportFormValue.getTime23().charAt(reportFormValue.getTime23().length()-3) ==' '){
+						r2c24.setCellStyle(cellComp);
+						r2c24.setCellValue(reportFormValue.getTime23());
+					}
+					else if(reportFormValue.getTime23()!="" && reportFormValue.getTime23().charAt(reportFormValue.getTime23().length()-2) ==' '){
+						r2c24.setCellStyle(cellSt11);
+						r2c24.setCellValue(reportFormValue.getTime23());
+					}
+					else if(reportFormValue.getTime23()!="" && reportFormValue.getTime23().charAt(reportFormValue.getTime23().length()-1) ==' '){
+						r2c24.setCellStyle(cellSt);
+						r2c24.setCellValue(reportFormValue.getTime23());
+					}
+					else{
+						r2c24.setCellValue(reportFormValue.getTime23());
+					}
+					Cell r2c25 = row.createCell((short) 24);
+					if(reportFormValue.getTime24()!="" && reportFormValue.getTime24().charAt(reportFormValue.getTime24().length()-3) ==' '){
+						r2c25.setCellStyle(cellComp);
+						r2c25.setCellValue(reportFormValue.getTime24());
+					}
+					else if(reportFormValue.getTime24()!="" && reportFormValue.getTime24().charAt(reportFormValue.getTime24().length()-2) ==' '){
+						r2c25.setCellStyle(cellSt11);
+						r2c25.setCellValue(reportFormValue.getTime24());
+					}
+					else if(reportFormValue.getTime24()!="" && reportFormValue.getTime24().charAt(reportFormValue.getTime24().length()-1) ==' '){
+						r2c25.setCellStyle(cellSt);
+						r2c25.setCellValue(reportFormValue.getTime24());
+					}
+					else{
+						r2c25.setCellValue(reportFormValue.getTime24());
+					}
+					Cell r2c26 = row.createCell((short) 25);
+					if(reportFormValue.getTime25()!="" && reportFormValue.getTime25().charAt(reportFormValue.getTime25().length()-3) ==' '){
+						r2c26.setCellStyle(cellComp);
+						r2c26.setCellValue(reportFormValue.getTime25());
+					}
+					else if(reportFormValue.getTime25()!="" && reportFormValue.getTime25().charAt(reportFormValue.getTime25().length()-2) ==' '){
+						r2c26.setCellStyle(cellSt11);
+						r2c26.setCellValue(reportFormValue.getTime25());
+					}
+					else if(reportFormValue.getTime25()!="" && reportFormValue.getTime25().charAt(reportFormValue.getTime25().length()-1) ==' '){
+						r2c26.setCellStyle(cellSt);
+						r2c26.setCellValue(reportFormValue.getTime25());
+					}
+					else{
+						r2c26.setCellValue(reportFormValue.getTime25());
+					}
+					Cell r2c27 = row.createCell((short) 26);
+					if(reportFormValue.getTime26()!="" && reportFormValue.getTime26().charAt(reportFormValue.getTime26().length()-3) ==' '){
+						r2c27.setCellStyle(cellComp);
+						r2c27.setCellValue(reportFormValue.getTime26());
+					}
+					else if(reportFormValue.getTime26()!="" && reportFormValue.getTime26().charAt(reportFormValue.getTime26().length()-2) ==' '){
+						r2c27.setCellStyle(cellSt11);
+						r2c27.setCellValue(reportFormValue.getTime26());
+					}
+					else if(reportFormValue.getTime26()!="" && reportFormValue.getTime26().charAt(reportFormValue.getTime26().length()-1) ==' '){
+						r2c27.setCellStyle(cellSt);
+						r2c27.setCellValue(reportFormValue.getTime26());
+					}
+					else{
+						r2c27.setCellValue(reportFormValue.getTime26());
+					}
+					Cell r2c28 = row.createCell((short) 27);
+					if(reportFormValue.getTime27()!="" && reportFormValue.getTime27().charAt(reportFormValue.getTime27().length()-3) ==' '){
+						r2c28.setCellStyle(cellComp);
+						r2c28.setCellValue(reportFormValue.getTime27());
+					}
+					else if(reportFormValue.getTime27()!="" && reportFormValue.getTime27().charAt(reportFormValue.getTime27().length()-2) ==' '){
+						r2c28.setCellStyle(cellSt11);
+						r2c28.setCellValue(reportFormValue.getTime27());
+					}
+					else if(reportFormValue.getTime27()!="" && reportFormValue.getTime27().charAt(reportFormValue.getTime27().length()-1) ==' '){
+						r2c28.setCellStyle(cellSt);
+						r2c28.setCellValue(reportFormValue.getTime27());
+					}
+					else{
+						r2c28.setCellValue(reportFormValue.getTime27());
+					}
+					if(dayCountInMonth == 28){
+						Cell r2c29 = row.createCell((short) 28);
+						if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-3) ==' '){
+							r2c29.setCellStyle(cellComp);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-2) ==' '){
+							r2c29.setCellStyle(cellSt11);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-1) ==' '){
+							r2c29.setCellStyle(cellSt);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else{
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+					}
+					else if(dayCountInMonth == 29){
+						Cell r2c29 = row.createCell((short) 28);
+						if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-3) ==' '){
+							r2c29.setCellStyle(cellComp);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-2) ==' '){
+							r2c29.setCellStyle(cellSt11);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-1) ==' '){
+							r2c29.setCellStyle(cellSt);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else{
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						Cell r2c30 = row.createCell((short) 29);
+						if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-3) ==' '){
+							r2c30.setCellStyle(cellComp);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-2) ==' '){
+							r2c30.setCellStyle(cellSt11);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-1) ==' '){
+							r2c30.setCellStyle(cellSt);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else{
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+					}
+					else if(dayCountInMonth == 30){
+						Cell r2c29 = row.createCell((short) 28);
+						if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-3) ==' '){
+							r2c29.setCellStyle(cellComp);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-2) ==' '){
+							r2c29.setCellStyle(cellSt11);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-1) ==' '){
+							r2c29.setCellStyle(cellSt);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else{
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						Cell r2c30 = row.createCell((short) 29);
+						if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-3) ==' '){
+							r2c30.setCellStyle(cellComp);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-2) ==' '){
+							r2c30.setCellStyle(cellSt11);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-1) ==' '){
+							r2c30.setCellStyle(cellSt);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else{
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						Cell r2c31 = row.createCell((short) 30);
+						if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-3) ==' '){
+							r2c31.setCellStyle(cellComp);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-2) ==' '){
+							r2c31.setCellStyle(cellSt11);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-1) ==' '){
+							r2c31.setCellStyle(cellSt);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else{
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+					}
+					else if( dayCountInMonth == 31){
+						Cell r2c29 = row.createCell((short) 28);
+						if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-3) ==' '){
+							r2c29.setCellStyle(cellComp);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-2) ==' '){
+							r2c29.setCellStyle(cellSt11);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else if(reportFormValue.getTime28()!="" && reportFormValue.getTime28().charAt(reportFormValue.getTime28().length()-1) ==' '){
+							r2c29.setCellStyle(cellSt);
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						else{
+							r2c29.setCellValue(reportFormValue.getTime28());
+						}
+						Cell r2c30 = row.createCell((short) 29);
+						if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-3) ==' '){
+							r2c30.setCellStyle(cellComp);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-2) ==' '){
+							r2c30.setCellStyle(cellSt11);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else if(reportFormValue.getTime29()!="" && reportFormValue.getTime29().charAt(reportFormValue.getTime29().length()-1) ==' '){
+							r2c30.setCellStyle(cellSt);
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						else{
+							r2c30.setCellValue(reportFormValue.getTime29());
+						}
+						Cell r2c31 = row.createCell((short) 30);
+						if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-3) ==' '){
+							r2c31.setCellStyle(cellComp);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-2) ==' '){
+							r2c31.setCellStyle(cellSt11);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else if(reportFormValue.getTime30()!="" && reportFormValue.getTime30().charAt(reportFormValue.getTime30().length()-1) ==' '){
+							r2c31.setCellStyle(cellSt);
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						else{
+							r2c31.setCellValue(reportFormValue.getTime30());
+						}
+						Cell r2c32 = row.createCell((short) 31);
+						if(reportFormValue.getTime31()!="" && reportFormValue.getTime31().charAt(reportFormValue.getTime31().length()-3) ==' '){
+							r2c32.setCellStyle(cellComp);
+							r2c32.setCellValue(reportFormValue.getTime31());
+						}
+						else if(reportFormValue.getTime31()!="" && reportFormValue.getTime31().charAt(reportFormValue.getTime31().length()-2) ==' '){
+							r2c32.setCellStyle(cellSt11);
+							r2c32.setCellValue(reportFormValue.getTime31());
+						}
+						else if(reportFormValue.getTime31()!="" && reportFormValue.getTime31().charAt(reportFormValue.getTime31().length()-1) ==' '){
+							r2c32.setCellStyle(cellSt);
+							r2c32.setCellValue(reportFormValue.getTime31());
+						}
+						else{
+							r2c32.setCellValue(reportFormValue.getTime31());
+						}
+					}
+					Cell r2c33 = row.createCell((short) rowCount);
+					if(reportFormValue.getTotalTime()!=null){
+						r2c33.setCellValue(reportFormValue.getTotalTime());
+					}
+					count++;
+				}
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"TaskDetailsReport_"+file_name+".xlsx");				
+				OutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+			}catch(Exception e)
+			{
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally 
+			{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+	}
+	public void exportAllUserAccessMapping(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		//get the resources that are allocated for a particular user 
+		FileOutputStream fos = null;
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			try{
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				//get all user access mapping
+				List<List<Report>> allocationMappingAllUsers=reportservice.getUserReportAllocation();
+				//get the list of users with the list of resources
+				List<Report> updatedAllocationListAllUser=new ArrayList<Report>();
+				Report allocationListAllUser=null;
+				Iterator<List<Report>> allocationAllUserIterator= allocationMappingAllUsers.iterator();
+				while(allocationAllUserIterator.hasNext()){
+					List<Report> allocationListUser=allocationAllUserIterator.next();
+					allocationListAllUser=new Report();
+					Iterator<Report> allocatedIterator=allocationListUser.iterator();
+					int counter=1;
+					List<Report> updatedAllocatedList=new ArrayList<Report>();
+					while(allocatedIterator.hasNext()){
+						Report report=allocatedIterator.next();
+						if(counter==1){
+							report.setParentUserName(report.getParentUserName());
+						}
+						updatedAllocatedList.add(report);
+						counter++;
+					}
+					allocationListAllUser.setAllUserAllocationList(updatedAllocatedList);
+					updatedAllocationListAllUser.add(allocationListAllUser);
+				}
+				//Write Code for generate excel report for access mapping for all user
+				Workbook wb = new XSSFWorkbook();
+				//CreationHelper createHelper = wb.getCreationHelper();	
+				Sheet sheet = wb.createSheet("AllUserAccessMappingDetails");
+				//generate the header row
+				Row row1 = sheet.createRow(0);
+				Cell r1c1 = row1.createCell((short) 0);
+				r1c1.setCellValue("User");
+				Cell r1c2 = row1.createCell((short) 1);
+				r1c2.setCellValue("Access To");
+				int count=1;
+				Iterator<Report> usermappingIterator=updatedAllocationListAllUser.iterator();	
+				while(usermappingIterator.hasNext()){
+					Report report=usermappingIterator.next();
+					List<Report> userMappingList=report.getAllUserAllocationList();
+					if(userMappingList!=null&&userMappingList.size()>0){
+						Iterator<Report> userAccessMappingIterator=userMappingList.iterator();
+						while(userAccessMappingIterator.hasNext()){
+							Row row = sheet.createRow(count);
+							Report report1=userAccessMappingIterator.next();
+							Cell r2c1 = row.createCell((short) 0);
+							r2c1.setCellValue(report1.getParentUserName());
+							Cell r2c2 = row.createCell((short) 1);
+							r2c2.setCellValue(report1.getUserName());
+							count++;
+						}
+						count++;
+					}
+				}	// To write out the workbook into a file we need to create an output
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"AllUserAccessMapping_"+file_name+".xlsx");
+				OutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally {
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+		//return map.findForward("getDetailedTimesheet");
+	}	
+	//Added for User contact info	
+	public ActionForward getContactNumbers(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{     
+		logger.info(" getContactNumbersFromRepotAction ");
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			try{
+				String reportMonthYear=request.getParameter("month-settings");
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				Properties prop = new Properties();	
+				File admin_info_file = new File(request.getServletContext().getRealPath("getInformation.properties"));	
+				if(admin_info_file.exists()){
+					prop.load(new FileInputStream(admin_info_file));
+				}
+				int admin_id = Integer.parseInt(prop.getProperty("userInfo_userId"));
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();			
+				//sess.setAttribute("allocatedResource", allocatedResource);
+				UserService userService;
+				userService=Factory.getUserService();
+				Calendar cal = Calendar.getInstance();				
+				cal.setTime(Calendar.getInstance().getTime()); // Current Date 
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+				List<UserForm> allocatedUserList = userService.getAllocatedResourcesBasedOnStartAndExitDate(admin_id, cal);				
+				sess.removeAttribute("selectedDate");							
+				// Getting the list of Contact detail
+				List<Object> listContact = userService.getContactDetails(allocatedUserList);					
+				request.setAttribute("listContact",listContact);
+				sess.setAttribute("listContact",listContact);
+				sess.setAttribute("selectedDate", reportMonthYear);
+				request.setAttribute("reportType", "dashBoardReport");
+				request.setAttribute("monthYearString",reportMonthYear);
+				request.setAttribute("locationDetail", location);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("getDetailedTimesheet");
+		}
+		else
+			throw new Exception();
+	}
+	// Excel for User Contact Information.
+	public void generateContactReportExcel(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		FileOutputStream fos = null;
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			try{
+				List<Object> listContact = (List<Object>)sess.getAttribute("listContact");
+				request.setAttribute("listContact",listContact);
+				// Creating Workbook for entering contact details
+				Workbook wb = new XSSFWorkbook();
+				//CreationHelper createHelper = wb.getCreationHelper();
+				Sheet sheet = wb.createSheet("Contact Details Sheet");
+				//CellStyle cellSt =  wb.createCellStyle();
+				//Font font = wb.createFont();
+				Row row1 = sheet.createRow(0);
+				Cell r1c1 = row1.createCell((short) 0);
+				r1c1.setCellValue("Username");
+				Cell r1c2 = row1.createCell((short) 1);
+				r1c2.setCellValue("Team");
+				Cell r1c3 = row1.createCell((short) 2);
+				r1c3.setCellValue("Apollo Manager");
+				Cell r1c4 = row1.createCell((short) 3);
+				r1c4.setCellValue("Mobile Number");
+				Cell r1c5 = row1.createCell((short) 4);
+				r1c5.setCellValue("Skype ID");
+				int count=1;			
+				Iterator itr = listContact.iterator();
+				//Added
+				while(itr.hasNext()){
+					List list = (List)itr.next();								   								 							        
+					if(list.size()==5){		
+						String[] str = (String[])list.get(1);
+						String contact1 = str[0];
+						String contact2 = "";
+						if(str[1]!=null){
+							contact2 = str[1];
+						}
+						String username =(String) list.get(0);
+						String team = (String)list.get(2);
+						String manager =(String) list.get(3);
+						String skype =(String) list.get(4); 
+						Row row = sheet.createRow(count);
+						Cell r2c1 = row.createCell((short) 0);
+						r2c1.setCellValue(username);
+						Cell r2c2 = row.createCell((short) 1);
+						r2c2.setCellValue(team);
+						Cell r2c3 = row.createCell((short) 2);
+						r2c3.setCellValue(manager);
+						Cell r2c4 = row.createCell((short) 3);
+						r2c4.setCellValue(contact1+" "+contact2);
+						Cell r2c5 = row.createCell((short) 4);
+						r2c5.setCellValue(skype);	
+					}									   							       
+					else if(list.size()==1){
+						String username = (String)list.get(0);
+						Row row = sheet.createRow(count);
+						Cell r2c1 = row.createCell((short) 0);
+						r2c1.setCellValue(username);
+						Cell r2c2 = row.createCell((short) 1);
+						r2c2.setCellValue("---");
+						Cell r2c3 = row.createCell((short) 2);
+						r2c3.setCellValue("---");
+						Cell r2c4 = row.createCell((short) 3);
+						r2c4.setCellValue("---");
+						Cell r2c5 = row.createCell((short) 4);
+						r2c5.setCellValue("---");			          
+					}
+					count++;
+				}  			
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"ContactDetails_"+file_name+".xlsx");			
+				OutputStream out = response.getOutputStream();			
+				wb.write(out);
+				out.flush();
+				out.close();
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} 
+					catch (IOException e){
+						e.printStackTrace();
+					}
+				}			
+			}
+		}
+		else
+			throw new Exception();
+	}	
+	// Added for Team Wise Report for Account Manager
+	public ActionForward getResourceTeamWise(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 =  request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			try{
+				int userId=Integer.parseInt(s1.getAttribute("user_id").toString());
+				ReportForm repForm = (ReportForm) form;
+				UserService userService;
+				userService=Factory.getUserService();
+				List<UserForm> allocatedUserList=userService.getAllocatedResourcesTeamWise(userId, repForm);
+				List<String> conList = userService.getTeamFromContact();
+				request.setAttribute("userList",allocatedUserList);  // Changes Required Here!!
+				s1.setAttribute("conListUpdate",conList);
+				request.setAttribute("reportType", "noReport");
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}						
+			return map.findForward("getUserReportDetails");
+		}
+		else
+			throw new Exception();
+	}	
+	// Added for Exception DashBoard for Account Manager
+	public ActionForward getExceptionDashboard(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		logger.info("You Are Inside getExceptionDashboard method of ReportAction");
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			String year="";
+			String month="";
+			List<UserForm> selectedUserList = new ArrayList<UserForm>();
+			try{				
+				int userId=Integer.parseInt(s1.getAttribute("user_id").toString());
+				UserService userService;
+				userService=Factory.getUserService();
+				String reportMonthYear=request.getParameter("month-settings");
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH)); 
+				List<UserForm> allocatedUserList=userService.getAllocatedResourcesBasedOnStartAndExitDate(userId, cal);
+				s1.removeAttribute("selectedDate");
+				int i1 = reportMonthYear.length();
+				int j = reportMonthYear.indexOf("/");
+				int k = reportMonthYear.lastIndexOf("/");
+				month = reportMonthYear.substring(j+1,k);
+				year = reportMonthYear.substring(k+1,i1);			
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<ReportForm> reportList = null;
+				reportList = reportservice.getExceptionDashboard(year,month,allocatedUserList);				
+				s1.setAttribute("reportListForExceptionBoard", reportList);
+				ReportForm reportForm=(ReportForm)form;
+				reportForm.setReportDataList(reportList);
+				request.setAttribute("reportListException", reportList);
+				List<String> dayList=new ArrayList<String>();
+				Calendar calendar = Calendar.getInstance();
+				int date = 1;
+				calendar.set(Integer.parseInt(year), Integer.parseInt(month)-1, date);
+				int days = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+				for(int i=1;i<=days;i++){
+					calendar.set(Calendar.DAY_OF_MONTH, i);
+					dayList.add(calendar.getTime().toString().substring(0,3));
+				}				
+				List<String> dayListForDates = new ArrayList<String>();
+				DateFormat df2 = new SimpleDateFormat("M/d");
+				for(int i=1;i<=days;i++){
+					cal.set(Calendar.DAY_OF_MONTH,i);
+					if(!(cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)){
+						dayListForDates.add(df2.format(cal.getTime()));
+					}
+					else{
+						dayListForDates.add(df2.format(cal.getTime())+" ");
+					}
+				} 				
+				request.setAttribute("dayList", dayList);
+				request.setAttribute("dayListForDates", dayListForDates);
+				s1.setAttribute("dayList", dayList);
+				s1.setAttribute("dayListForDates", dayListForDates);
+				s1.setAttribute("selectedDate", reportMonthYear);
+				request.setAttribute("selectedUserList",selectedUserList);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("displayReport");
+		}
+		else
+			throw new Exception();
+	}	
+
+	public void generateReportExceptionDashBoard(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			FileOutputStream fos = null;
+			try{
+				List<String> dayList = (List)sess.getAttribute("dayList");
+				List<String> dayListForDates = (List)sess.getAttribute("dayListForDates");
+				int dayCountInMonth = 0 ;
+				if(dayListForDates != null){
+					dayCountInMonth = dayListForDates.size();
+				}
+				List<ReportForm> reportList = (List<ReportForm>) sess.getAttribute("reportListForExceptionBoard");
+				ReportForm reportForm=(ReportForm)form;
+				reportForm.setReportDataList(reportList);
+				Workbook wb = new XSSFWorkbook();
+				//CreationHelper createHelper = wb.getCreationHelper();
+				Iterator<ReportForm> timeSheetDashBoardIterator=reportList.iterator();	
+				/*HSSFSheet sheet = workbook.createSheet("Sheet1");*/
+				Sheet sheet = wb.createSheet("Exception DashBoard");
+				CellStyle cellSt =  wb.createCellStyle();			
+				Font font = wb.createFont();			
+				font.setColor(Font.COLOR_RED);			
+				cellSt.setFont(font); 
+				CellStyle cellSt1 =  wb.createCellStyle();			
+				cellSt1.setFillForegroundColor(IndexedColors.PINK.getIndex());
+				cellSt1.setFillPattern(CellStyle.FINE_DOTS);
+				/*setColor(HSSFColor.GREEN.index);*/                                                 /*r1c1.setCellStyle(cellSt);*/
+				Row row1 = sheet.createRow((short) 0);
+				Cell r1c1 = row1.createCell(0);			
+				r1c1.setCellValue("Username");
+				Iterator<String> itr = dayList.iterator();
+				Iterator<String> itrForDateFormat = dayListForDates.iterator();
+				int rowCount = 1;
+				while (itr.hasNext() && itr.hasNext()) {
+					String string = (String) itr.next();
+					String dateValue = (String) itrForDateFormat.next();
+					Cell r1c2 = row1.createCell((short) rowCount);
+					if(string.equalsIgnoreCase("Sun")||string.equalsIgnoreCase("Sat")){				
+						r1c2.setCellValue(dateValue);					
+						r1c2.setCellStyle(cellSt1);
+					}
+					else{					
+						r1c2.setCellValue(dateValue);
+					}
+					rowCount++;
+				}
+				int count=1;			
+				XSSFFont font1 = (XSSFFont)wb.createFont();
+				CellStyle cellSt11 =  wb.createCellStyle();
+				font1.setColor(new XSSFColor(new java.awt.Color(0, 0, 255)));
+				cellSt11.setFont(font1); 			
+				while(timeSheetDashBoardIterator.hasNext()){
+					ReportForm reportFormValue=timeSheetDashBoardIterator.next();
+					Row row = sheet.createRow((short)count);
+					Cell r2c1 = row.createCell((short) 0);
+					r2c1.setCellValue(reportFormValue.getUserName());
+					Cell r2c2 = row.createCell((short) 1);
+					r2c2.setCellValue(reportFormValue.getTime1());
+					Cell r2c3 = row.createCell((short) 2);
+					r2c3.setCellValue(reportFormValue.getTime2());
+					Cell r2c4 = row.createCell((short) 3);
+					r2c4.setCellValue(reportFormValue.getTime3());
+					Cell r2c5 = row.createCell((short) 4);
+					r2c5.setCellValue(reportFormValue.getTime4());
+					Cell r2c6 = row.createCell((short) 5);
+					r2c6.setCellValue(reportFormValue.getTime5());
+					Cell r2c7 = row.createCell((short) 6);
+					r2c7.setCellValue(reportFormValue.getTime6());
+					Cell r2c8 = row.createCell((short) 7);
+					r2c8.setCellValue(reportFormValue.getTime7());
+					Cell r2c9= row.createCell((short) 8);
+					r2c9.setCellValue(reportFormValue.getTime8());
+					Cell r2c10 = row.createCell((short) 9);
+					r2c10.setCellValue(reportFormValue.getTime9());
+					Cell r2c11= row.createCell((short) 10);
+					r2c11.setCellValue(reportFormValue.getTime10());
+					Cell r2c12 = row.createCell((short) 11);
+					r2c12.setCellValue(reportFormValue.getTime11());
+					Cell r2c13 = row.createCell((short) 12);
+					r2c13.setCellValue(reportFormValue.getTime12());
+					Cell r2c14= row.createCell((short)13);
+					r2c14.setCellValue(reportFormValue.getTime13());
+					Cell r2c15 = row.createCell((short) 14);
+					r2c15.setCellValue(reportFormValue.getTime14());
+					Cell r2c16 = row.createCell((short) 15);
+					r2c16.setCellValue(reportFormValue.getTime15());
+					Cell r2c17 = row.createCell((short) 16);
+					r2c17.setCellValue(reportFormValue.getTime16());
+					Cell r2c18= row.createCell((short) 17);
+					r2c18.setCellValue(reportFormValue.getTime17());
+					Cell r2c19 = row.createCell((short)18);
+					r2c19.setCellValue(reportFormValue.getTime18());
+					Cell r2c20 = row.createCell((short) 19);
+					r2c20.setCellValue(reportFormValue.getTime19());
+					Cell r2c21 = row.createCell((short) 20);
+					r2c21.setCellValue(reportFormValue.getTime20());
+					Cell r2c22 = row.createCell((short) 21);
+					r2c22.setCellValue(reportFormValue.getTime21());
+					Cell r2c23 = row.createCell((short) 22);
+					r2c23.setCellValue(reportFormValue.getTime22());
+					Cell r2c24 = row.createCell((short) 23);
+					r2c24.setCellValue(reportFormValue.getTime23());
+					Cell r2c25 = row.createCell((short) 24);
+					r2c25.setCellValue(reportFormValue.getTime24());
+					Cell r2c26 = row.createCell((short) 25);
+					r2c26.setCellValue(reportFormValue.getTime25());
+					Cell r2c27 = row.createCell((short) 26);
+					r2c27.setCellValue(reportFormValue.getTime26());
+					Cell r2c28 = row.createCell((short) 27);
+					r2c28.setCellValue(reportFormValue.getTime27());
+					if(dayCountInMonth == 28){
+						Cell r2c29 = row.createCell((short) 28);
+						r2c29.setCellValue(reportFormValue.getTime28());						
+					}else if(dayCountInMonth ==29){
+						Cell r2c29 = row.createCell((short) 28);
+						r2c29.setCellValue(reportFormValue.getTime28());
+						Cell r2c30 = row.createCell((short) 29);
+						r2c30.setCellValue(reportFormValue.getTime29());
+					}else if(dayCountInMonth == 30){
+						Cell r2c29 = row.createCell((short) 28);
+						r2c29.setCellValue(reportFormValue.getTime28());
+						Cell r2c30 = row.createCell((short) 29);
+						r2c30.setCellValue(reportFormValue.getTime29());
+						Cell r2c31 = row.createCell((short) 30);					
+						r2c31.setCellValue(reportFormValue.getTime30());
+					}else{
+						Cell r2c29 = row.createCell((short) 28);
+						r2c29.setCellValue(reportFormValue.getTime28());
+						Cell r2c30 = row.createCell((short) 29);
+						r2c30.setCellValue(reportFormValue.getTime29());
+						Cell r2c31 = row.createCell((short) 30);					
+						r2c31.setCellValue(reportFormValue.getTime30());
+						Cell r2c32 = row.createCell((short) 31);
+						r2c32.setCellValue(reportFormValue.getTime31());
+					}					
+					count++;
+				}				
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"ExceptionDashboardReport_"+file_name+".xlsx");
+				OutputStream out = response.getOutputStream();
+				wb.write(out);
+				out.flush();
+				out.close();
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally {
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward getFaquestion(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 =  request.getSession();
+		s1.removeAttribute("selectedDate");
+		s1.removeAttribute("conList");
+		s1.removeAttribute("userList");
+		s1.removeAttribute("conListUpdate");
+		if(s1.getAttribute("userName")!=null){				
+			return map.findForward("faQuestion");
+		}
+		else
+			throw new Exception();
+	}	
+
+	public ActionForward getUserReportDetailsMonthWise(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 =  request.getSession();
+		if(s1.getAttribute("userName")!=null){	
+			try{
+				int userId=Integer.parseInt(s1.getAttribute("user_id").toString());				
+				UserService userService;
+				userService=Factory.getUserService();
+				String reportMonthYear=request.getParameter("month-set");
+				DateFormat df = new SimpleDateFormat("M/yyyy");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH)); 
+				List<UserForm> allocatedUserList=userService.getAllocatedResourcesBasedOnStartAndExitDate(userId, cal);			
+				String role = userService.getRole(userId);				
+				if(role!=null && role.equalsIgnoreCase("acc_Manager")){
+					List<String> conList = userService.getTeamFromContact();				
+					s1.setAttribute("conList",conList);
+				}
+				DateFormat dformat = new SimpleDateFormat("MM/yyyy");
+				s1.setAttribute("selectedDate", "20/"+dformat.format(dformat.parse(reportMonthYear)));
+				s1.setAttribute("userList",allocatedUserList);
+				request.setAttribute("reportType", "noReport");
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}			
+			return map.findForward("getUserReportDetails");
+		}
+		else
+			throw new Exception();
+	}	
+	public ActionForward getResourceLocationWise(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession s1 =  request.getSession();
+		if(s1.getAttribute("userName")!=null){	
+			try{
+				int userId=Integer.parseInt(s1.getAttribute("user_id").toString());
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String monthYear = request.getParameter("month-settings");
+				UserService userService;
+				userService=Factory.getUserService();
+				if(location!=null && monthYear!=null){
+					DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(df.parse(monthYear));
+					cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));					
+					List<UserForm> allocatedUserList=userService.getAllocatedResourcesBasedOnExitDateAndLocation(userId, cal, location);			
+					s1.setAttribute("userList",allocatedUserList);
+					request.setAttribute("locationDetail", location);
+				} 
+				else{
+					throw new Exception();
+				}
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}			
+			return map.findForward("getUserReportDetails");
+		}
+		else
+			throw new Exception();
+	}
+
+	@Override
+	public void execute(JobExecutionContext context)throws JobExecutionException{
+		// Method for generating Report on every friday for current Week Time entry for all Resource Mapped under Raghavi.
+		try{
+			File f1 = readFileFromGlassfishDomainConfigFolder("getInformation.properties");
+			logger.info("check file exist or not from Report Action"+f1.exists());
+			if(f1.exists()){
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(f1));
+				int userId = Integer.parseInt(prop.getProperty("userInfo_userId"));
+				Calendar cal = Calendar.getInstance();				
+				UserService userService=Factory.getUserService();
+				List<UserForm> allocatedUserList = userService.getAllocatedResourcesDetails(userId, cal);
+				ReportService reportservice=ReportServiceFactory.getReportService();
+				List<String> allWorkingDatesList = TimeUtility.getAllWorkingDatesForThisMonth();
+				if(!allWorkingDatesList.isEmpty()){
+					List<ReportForm> reportList = reportservice.getResourceDetailWhoMissedEntry(cal, allocatedUserList, allWorkingDatesList, prop);
+					List<String> listForLog = new ArrayList<String>();
+					String message = null;
+					if(!reportList.isEmpty()){
+						message = reportservice.sendWeeklyReminderMail(reportList, cal, prop);
+						listForLog.add(message);
+					}
+					logger.info("Printing list containing weekly mailing deatils  : "+listForLog);
+				}
+			}
+		}
+		catch(Exception e){
+			logger.error("Exception from Report Action while running weekly reminder mailing: "+e);
+		}
+	}
+
+	private static File readFileFromGlassfishDomainConfigFolder( final String fileName ) throws FileNotFoundException
+	{
+		// Instance Root folder
+		final String instanceRoot = System.getProperty( glassfishInstanceRootPropertyName );	    
+		logger.info(" instanceRoot Value from ReportAction "+instanceRoot);    
+		if (instanceRoot == null){
+			throw new FileNotFoundException( "Cannot find Glassfish instanceRoot. Is the com.sun.aas.instanceRoot system property set?" );
+		}
+		// Instance Root + /config folder
+		File configurationFolder = new File( instanceRoot + File.separator + glassfishDomainConfigurationFolderName );
+		logger.info("configurationFolder from ReportAction "+configurationFolder);	    
+		File configFile = new File( configurationFolder, fileName );
+		// return the given file
+		return configFile;
+	}
+	public ActionForward getDefaulterListDetails(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		logger.info("Printing from Report Action getDefaulterListDetails Method.");
+		HttpSession s1 = request.getSession();
+		ReportService reportservice = null; 
+		if(s1.getAttribute("userName")!=null){
+			try{
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String reportMonthYear = request.getParameter("month-settings");
+				String[] allocatedResource=request.getParameterValues("userId");		
+				s1.removeAttribute("selectedDate");				
+				/*Added for invalid request*/
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");			
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));				
+				Calendar current_time = Calendar.getInstance();				
+				if((current_time.get(Calendar.MONTH) == cal.get(Calendar.MONTH) && current_time.get(Calendar.DAY_OF_MONTH) == 1 ) || (cal.get(Calendar.MONTH) > current_time.get(Calendar.MONTH)) ){
+					request.setAttribute("invalidRequest", "invalidRequest");
+				}
+				/*Update ends here!*/
+				else{
+					List<String> getAllWorkingDateBeforeDay = TimeUtility.getAllWorkingDatesForSelectedMonth(reportMonthYear);
+					reportservice = ReportServiceFactory.getReportService();
+					List<ReportForm> listOfDefaulters = new ArrayList<ReportForm>();
+					if(!getAllWorkingDateBeforeDay.isEmpty()){
+						listOfDefaulters = reportservice.getDefaulterListDetails(allocatedResource, getAllWorkingDateBeforeDay, reportMonthYear);
+						s1.setAttribute("listOfDefaultersForExcel", listOfDefaulters); // Setted for excelsheet.
+					}
+					request.setAttribute("defaulterListDetails", listOfDefaulters);
+				}				
+				request.setAttribute("locationDetail", location);
+				s1.setAttribute("selectedDate", reportMonthYear);	
+			}
+			catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+		}
+		else{
+			throw new Exception();
+		}
+		return map.findForward("getDetailedTimesheet");
+	}
+
+	public void generateDefaulterReportExcel(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response) throws Exception{
+		//get the defaulter ExcelSheet report.
+		HttpSession sess = request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			FileOutputStream fos = null;
+			try{
+				List<ReportForm> defaulterReportList = (List<ReportForm>)sess.getAttribute("listOfDefaultersForExcel");
+				if(defaulterReportList != null && !defaulterReportList.isEmpty()){
+					Workbook wb = new XSSFWorkbook();
+					Sheet sheet = wb.createSheet("Defaulter List Details");
+					Row row = sheet.createRow(0);
+					Cell r1c1 = row.createCell((short) 0);
+					r1c1.setCellValue("Resource Name");
+					Cell r1c2 = row.createCell((short) 1);
+					r1c2.setCellValue("Period");
+					Iterator<ReportForm> itr = defaulterReportList.iterator();
+					int count = 1;
+					while (itr.hasNext()) {
+						ReportForm report = (ReportForm) itr.next();
+						Row row1 = sheet.createRow(count);
+						Cell r2c1 = row1.createCell((short) 0);
+						r2c1.setCellValue(report.getUserName());
+						Cell r2c2 = row1.createCell((short) 1);
+						r2c2.setCellValue(report.getPeriod());
+						count++;
+					}				
+					response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+					Calendar cal = Calendar.getInstance();
+					DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+					String file_name = df.format(cal.getTime());
+					response.setHeader("Content-Disposition", "inline; filename=" +"DefaulterResourceList_"+file_name+".xlsx");
+					OutputStream out = response.getOutputStream();
+					wb.write(out);
+					out.flush();
+					out.close();
+				}
+			}catch(Exception e)
+			{
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally
+			{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else
+			throw new Exception();
+	}
+	/*@Override
+	public void execute(JobExecutionContext context)throws JobExecutionException{
+		// Method for sending monthly reminder on every month
+		try{
+			File f1 = readFileFromGlassfishDomainConfigFolder("getInformation.properties");
+			logger.info("check file exist or not from Report Action"+f1.exists());
+			if(f1.exists()){
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(f1));
+				int userId = Integer.parseInt(prop.getProperty("userInfo_userId"));
+				String email = prop.getProperty("admimEmail");
+				String pass = prop.getProperty("adminEmailPassword");
+				if(userId!=0 && email!=null && pass!=null){
+					Date date = new Date();
+					DateFormat df = new SimpleDateFormat("yyyy-MM");
+					String monthYear = df.format(date);
+					String formattedDate = df.format(date);
+					String year = formattedDate.substring(0,formattedDate.indexOf('-'));
+					String month = formattedDate.substring(formattedDate.indexOf('-')+1, formattedDate.length());			
+					List<String> dayList=new ArrayList<String>();
+					Calendar calendar = Calendar.getInstance();				
+					UserService userService=Factory.getUserService();
+					List<UserForm> allocatedUserList = userService.getAllocatedResourcesDetails(userId, calendar);						
+					int firstDate = 1;
+					calendar.set(Integer.parseInt(year), Integer.parseInt(month)-1, firstDate);
+					int days = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
+					for(int i=1;i<=days;i++){
+						calendar.set(Integer.parseInt(year), Integer.parseInt(month)-1,i); //Setting previous to current month.
+						DateFormat df1 = new SimpleDateFormat("E d");
+						dayList.add(df1.format(calendar.getTime()));
+					}							
+					//File xmlTempFile = new File("template.xslt");
+					File xmlTempFile = readFileFromGlassfishDomainConfigFolder("template.xslt");
+					logger.info("from ReportAction File Path is: "+xmlTempFile +" Checking existance "+xmlTempFile.exists());				
+					ReportService reportservice=ReportServiceFactory.getReportService();
+					if(xmlTempFile.exists()){
+						List<ReportForm> reportList = reportservice.getReportDataForRemainderMail(monthYear, allocatedUserList);			
+						reportservice.sendRemainderMail(reportList, dayList, xmlTempFile, allocatedUserList, calendar, prop);	
+					}
+				}
+			}
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}*/
+	
+	public ActionForward getCompOffReport(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		logger.info("Printing from Report Action getCompOffReport Method.");
+		HttpSession s1 = request.getSession();
+		ReportService reportservice = null; 
+		if(s1.getAttribute("userName")!=null){
+			try{
+				String[] allocatedResource = request.getParameterValues("userId");
+				String reportMonthYear = request.getParameter("month-settings");
+				reportservice = ReportServiceFactory.getReportService();
+				String path = request.getServletContext().getRealPath("getInformation.properties");
+				File holidayInfo = new File(path);
+				Properties props = new Properties();
+				if(holidayInfo.exists()){
+					props.load(new FileInputStream(path));
+				}							
+				List<ReportForm> listForCompOffReport = null;
+				if( allocatedResource != null && reportMonthYear != null){
+					String year = reportMonthYear.substring(reportMonthYear.lastIndexOf('/')+1, reportMonthYear.length());
+					String month = reportMonthYear.substring(reportMonthYear.indexOf('/')+1, reportMonthYear.lastIndexOf('/'));				
+					listForCompOffReport = reportservice.getCompOffReport(allocatedResource, year, month, props);
+				}
+				request.setAttribute("CompOffReport", listForCompOffReport);
+				s1.setAttribute("CompOffReport", listForCompOffReport);     // Setted for excelsheet.
+				s1.setAttribute("selectedDate", reportMonthYear);			// Overriding selectedDate with Selected month for UserReport JSP.
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return map.findForward("displayReport");
+		}
+		else
+			throw new Exception();
+	}	
+	// Excel for generating Comp off Report.
+	public void generateCompOffReportExcel(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		FileOutputStream fos = null;
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){
+			try{
+				List<ReportForm> compOffReportList = (List<ReportForm>)sess.getAttribute("CompOffReport");
+				// Creating Workbook for entering contact details
+				Workbook wb = new XSSFWorkbook();
+				//CreationHelper createHelper = wb.getCreationHelper();
+				Sheet sheet = wb.createSheet("CompOffReportExcelsheet");
+				//CellStyle cellSt =  wb.createCellStyle();
+				//Font font = wb.createFont();
+				Row row1 = sheet.createRow(0);
+				Cell r1c1 = row1.createCell((short) 0);
+				r1c1.setCellValue("Username");
+				Cell r1c2 = row1.createCell((short) 1);
+				r1c2.setCellValue("Total Hours Spent");
+				Cell r1c3 = row1.createCell((short) 2);
+				r1c3.setCellValue("Billed Hours=No. working days inthe month*8");
+				Cell r1c4 = row1.createCell((short) 3);
+				r1c4.setCellValue("Additional Hours Spent= Total Hours-Billed Hours");
+				Cell r1c5 = row1.createCell((short) 4);
+				r1c5.setCellValue("Comp off availed in hours");
+				Cell r1c6 = row1.createCell((short) 5);
+				r1c6.setCellValue("Balance credits in hours");
+				Cell r1c7 = row1.createCell((short) 6);
+				r1c7.setCellValue("Total Down Time");
+				int count=1;			
+				Iterator<ReportForm> itr = compOffReportList.iterator();
+				//Added
+				while(itr.hasNext()){
+					ReportForm report_form = itr.next();							   								 							        
+					Row row = sheet.createRow(count);
+					Cell r2c1 = row.createCell((short) 0);
+					r2c1.setCellValue(report_form.getUserName());
+					Cell r2c2 = row.createCell((short) 1);
+					r2c2.setCellValue(report_form.getTotalTime());
+					Cell r2c3 = row.createCell((short) 2);
+					r2c3.setCellValue(report_form.getBilled_hours());
+					Cell r2c4 = row.createCell((short) 3);
+					r2c4.setCellValue(report_form.getAdditional_hours());
+					Cell r2c5 = row.createCell((short) 4);
+					r2c5.setCellValue(report_form.getCompOff_availed_hrs());	
+					Cell r2c6 = row.createCell((short) 5);
+					r2c6.setCellValue(report_form.getComp_bal());						
+					Cell r2c7 = row.createCell((short) 6);
+					r2c7.setCellValue(report_form.getTotal_down_time());						
+					count++;
+				}  			
+				response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+				Calendar cal = Calendar.getInstance();
+				DateFormat df = new SimpleDateFormat("dd_MMMM_yy_HH-mm");
+				String file_name = df.format(cal.getTime());
+				response.setHeader("Content-Disposition", "inline; filename=" +"CompOff_Report_"+file_name+".xlsx");			
+				OutputStream out = response.getOutputStream();			
+				wb.write(out);
+				out.flush();
+				out.close();
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				throw new Exception();
+			}
+			finally{
+				if (fos != null) {
+					try {
+						fos.flush();
+						fos.close();
+					} 
+					catch (IOException e){
+						e.printStackTrace();
+					}
+				}			
+			}
+		}
+		else
+			throw new Exception();
+	}	
+	
+	public ActionForward freezeTimesheet(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		// Freezing timesheet for selected resources.
+		logger.info("Printing from Report Action freezeTimesheet Method.");
+		HttpSession s1 = request.getSession();
+		ReportService reportservice = null; 
+		if(s1.getAttribute("userName")!=null){
+			try{
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String reportMonthYear = request.getParameter("month-settings");
+				String[] allocatedResource=request.getParameterValues("userId");		
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(df.parse(reportMonthYear));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+				reportservice = ReportServiceFactory.getReportService();
+				String freezingStatus = reportservice.freezeTimesheet(allocatedResource, cal);
+				if(freezingStatus.equalsIgnoreCase("Timesheet freezed successfully.")){
+					request.setAttribute("unfreezeTimesheet", "unfreezeTimesheet");
+				}
+			    request.setAttribute("freezingMessage", freezingStatus);
+				request.setAttribute("locationDetail", location);
+				request.setAttribute("selectedAllocatedResource", allocatedResource);
+				s1.setAttribute("selectedDate", reportMonthYear);	
+			}
+			catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+		}
+		else{
+			throw new Exception();
+		}
+		return map.findForward("getDetailedTimesheet");
+	}
+	public ActionForward unfreezeTimesheet(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		// unfreezeTimesheet timesheet for selected resources.
+		logger.info("Printing from ReportAction unfreezeTimesheet Method.");
+		HttpSession s1 = request.getSession();
+		ReportService reportservice = null; 
+		if(s1.getAttribute("userName")!=null){
+			try{
+				ReportForm reportForm = (ReportForm) form;	
+				String location = reportForm.getLocation();
+				String reportMonthYear = request.getParameter("month-settings");
+				String[] allocatedResource=request.getParameterValues("userId");		
+				DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+				reportservice = ReportServiceFactory.getReportService();
+				String freezingStatus = reportservice.unfreezeTimesheet(allocatedResource);
+				request.setAttribute("freezingMessage", freezingStatus);
+				request.setAttribute("locationDetail", location);
+				s1.setAttribute("selectedDate", reportMonthYear);	
+				request.setAttribute("selectedAllocatedResource", allocatedResource);
+			}
+			catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+		}
+		else{
+			throw new Exception();
+		}
+		return map.findForward("getDetailedTimesheet");
+	}
+
+	
+	public void checkFreezingEntryStatusForSelctedResource(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {	
+		logger.info("You are inside checkFreezingEntryStatusForSelctedResource method");
+		HttpSession session = request.getSession();
+		String selectedResource = request.getParameter("selectedUser");	
+		String selectedMonthDate = request.getParameter("selectedMonthForFreezing");
+		DateFormat df =new SimpleDateFormat("dd/MM/yyyy");
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(df.parse(selectedMonthDate));
+		cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		String[] splittingUserId = selectedResource.split(",");
+		if(session.getAttribute("user_id")!=null)  {
+			ReportService reportservice=ReportServiceFactory.getReportService();
+			String freezingStatus = "unfreezed";
+			try{
+				freezingStatus = reportservice.checkFreezingEntryStatusForSelctedResource(splittingUserId, cal);
+				response.getWriter().print(freezingStatus);	
+				logger.info("Freezing Status from checkFreezingEntryStatusForSelctedResource "+freezingStatus);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				response.getWriter().print("session expired");		
+			}
+		}
+		else
+			response.getWriter().print("session expired");
+	}
+	
+	// Added for Weekly Status Report	
+	/*public ActionForward getWeeklyStatus(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){     
+
+
+		  return map.findForward("weeklyStatusPage");
+		}
+	   else
+		  throw new Exception();
+	}
+	public ActionForward getWeeklyStatusForm(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){  
+			String startDate = request.getParameter("startDate");
+			String endDate = request.getParameter("endDate");
+			System.out.println(startDate+"...."+endDate);
+			sess.setAttribute("startDate", startDate);
+			sess.setAttribute("endDate", endDate);
+			return map.findForward("weeklyStatusForm");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward saveWeeklyForm(ActionMapping map,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null){  
+			WeeklyForm formOfTheWeek = (WeeklyForm) form;
+			String startDate = (String)sess.getAttribute("startDate");
+			String endDate = (String) sess.getAttribute("endDate");
+			int userId = Integer.parseInt(sess.getAttribute("user_id").toString());
+
+			 String[] details_miles = request.getParameterValues("detail_mile");
+			 String[] owner_mile = request.getParameterValues("owner_mile");
+			 String[] remark_mile = request.getParameterValues("remark_mile");
+			 int totalRow = details_miles.length;
+			 List<Deliverables> deliv = new ArrayList<Deliverables>();
+			 for (int i = 0; i < totalRow; i++) {
+				 Deliverables d1 = new Deliverables();
+				 d1.setDetails_miles(details_miles[i]);
+				 d1.setOwner_mile(owner_mile[i]);
+				 d1.setRemark_mile(remark_mile[i]);
+				 deliv.add(d1);				
+			 }
+
+			 String[] onDate_const = request.getParameterValues("onDate_const");
+			 String[] detail_const = request.getParameterValues("detail_const");
+			 String[] owner_const = request.getParameterValues("owner_const");
+			 String[] remark_const = request.getParameterValues("remark_const");
+			 String[] eta_const = request.getParameterValues("eta_const");
+			 List<Constraints> constr = new ArrayList<Constraints>();
+			 int rowConst = onDate_const.length;
+			 for (int i = 0; i < rowConst; i++) {
+				 Constraints c1 = new Constraints();
+				 c1.setOnDate_const(onDate_const[i]);
+				 c1.setDetail_const(detail_const[i]);
+				 c1.setOwner_const(owner_const[i]);
+				 c1.setRemark_const(remark_const[i]);
+				 c1.setEta_const(eta_const[i]);
+				 constr.add(c1);				
+			}
+
+			 String[] role_status = request.getParameterValues("role_status");
+			 String[] position = request.getParameterValues("position");
+			 String[] internalInter = request.getParameterValues("internalInter");
+			 String[] apolloInter = request.getParameterValues("apolloInter");
+			 String[] selectedOff = request.getParameterValues("selectedOff");
+			 String[] joined = request.getParameterValues("joined");
+			 List<Recruitment_status> recrut = new ArrayList<Recruitment_status>();
+			 int rowRecrut = role_status.length;
+			 for (int i = 0; i < rowRecrut; i++) {
+				 Recruitment_status r1 = new Recruitment_status();
+				 r1.setRole_status(role_status[i]);
+				 r1.setPosition(position[i]);
+				 r1.setInternalInter(internalInter[i]);
+				 r1.setApolloInter(apolloInter[i]);
+				 r1.setSelectedOff(selectedOff[i]);
+				 r1.setJoined(joined[i]);
+				 recrut.add(r1);				
+			}	
+
+			 ReportService reportservice=ReportServiceFactory.getReportService();			 
+			 String weeklySave = reportservice.saveWeeklyStatus(formOfTheWeek, userId, startDate, endDate, deliv, constr, recrut);	
+
+			 WeeklyForm weekReportData = reportservice.getEditableWeeklyForm(startDate, endDate,userId);
+
+			 sess.setAttribute("weeklyObject", weekReportData);
+			 request.setAttribute("weeklyObject", weekReportData);
+ 			 System.out.println("Getting Size of List"+deliv.size()+", "+constr.size()+", "+recrut.size());			
+ 			 request.setAttribute("saveStatus", weeklySave+" week "+startDate+"-"+endDate);					
+			 String[] ondate =  request.getParameterValues("onDate_const");			
+			 for (String string : ondate) {
+				System.out.println(string+" Check date");
+			 }
+			 return map.findForward("weeklyStatusForm");
+		}
+		else
+			throw new Exception();
+	}	*/
+}

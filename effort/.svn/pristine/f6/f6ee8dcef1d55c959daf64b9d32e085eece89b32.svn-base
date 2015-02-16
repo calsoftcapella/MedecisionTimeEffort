@@ -1,0 +1,143 @@
+package com.calsoft.task.action;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.StringTokenizer;
+
+public class Test 
+{
+public static void main(String a[])
+{
+
+	
+	 String y2=null;
+	
+	ArrayList aa=new ArrayList();ArrayList aa1=new ArrayList();
+	String mm[]=new String[10];
+	String mm1[]=new String[10];
+	 String mmm[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+Calendar cal = Calendar.getInstance();
+int year=cal.get(Calendar.YEAR);int month1=cal.get(Calendar.MONTH) + 1;
+for(int i=0;i<=9;i++)
+{
+
+if((month1)==0)
+{
+month1 =  (month1)+12;
+month1--;
+}
+
+else
+{
+	month1 =month1-1;
+}
+if(month1==11)
+{
+ year--;;
+}
+
+
+StringBuffer bf=new StringBuffer();
+String m=String.valueOf(month1+1);
+String y=String.valueOf(year);
+if(month1+1<10)
+{
+	m=bf.append("0").append(m).toString();
+	
+}
+StringBuffer bf1=new StringBuffer();
+String y1=bf1.append(y).append("-").append(m).toString();
+mm[i]=y1;
+//System.out.println(y1);
+StringBuffer bf2=new StringBuffer();
+
+y2=bf2.append(y).append("-").append(mmm[month1]).toString();
+
+
+
+mm1[i]=y2;
+}
+for(int i=0;i<=9;i++)
+{
+aa.add(mm[i]);
+aa1.add(mm1[i]);
+
+}
+System.out.println(aa);
+System.out.println(aa1);
+	
+ArrayList<Object> monthList1=new ArrayList<Object>();
+ArrayList<Object> monthList2=new ArrayList<Object>();
+String s1="2012-04";
+
+StringTokenizer st = new StringTokenizer(s1, "-"); 
+String yy=null;
+String m1=null;
+while(st.hasMoreTokens()) 
+{ 
+yy = st.nextToken(); 
+m1 = st.nextToken(); 
+for (int i = 0; i < m1.length(); ++i)
+{
+   char c = m1.charAt(i);
+   if (c != '0' && !Character.isSpaceChar(c))
+       m1=m1.substring(i);
+}
+
+} 
+
+int mon=Integer.parseInt(m1);
+
+monthList1.add(s1);
+StringBuffer bf3=new StringBuffer();
+
+y2=bf3.append(yy).append("-").append(mmm[mon-1]).toString();
+
+monthList2.add(y2);
+System.out.println(monthList2);
+System.out.println(monthList1);
+String ss1=(String)monthList2.get(0);
+System.out.println(ss1);
+String s,s9,ss;
+
+Iterator i5=aa.iterator();
+Iterator i6=aa1.iterator();
+
+
+	 
+	 
+
+while(i5.hasNext())
+{
+	 s=(String)i5.next();
+	 if(s.equalsIgnoreCase(s1))
+	 {
+		 
+	 }
+	 else
+	 {
+		 monthList1.add(s); 
+	 }
+}
+
+
+while(i6.hasNext())
+{
+	 ss=(String)i6.next();
+	 if(ss.equalsIgnoreCase(ss1))
+	 {
+		 
+	 }
+	 else
+	 {
+		 monthList2.add(ss); 
+	 }
+}
+
+System.out.println(monthList2);
+System.out.println(monthList1);
+
+
+}
+}

@@ -1,0 +1,47 @@
+package com.calsoft.util;
+
+import javax.servlet.ServletException;
+
+import org.apache.struts.action.ActionServlet;
+import org.apache.struts.action.PlugIn;
+import org.apache.struts.config.ModuleConfig;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
+import com.calsoft.performance.action.PerformanceAction;
+import com.calsoft.report.action.ReportAction;
+
+
+// Class for triggering mail on MON and FRI for every week.
+public class QuartzPlugin implements PlugIn {
+
+	@Override
+	public void destroy() {
+	}
+	@Override
+	public void init(ActionServlet servlet, ModuleConfig config)throws ServletException {
+		JobKey jobKeyA = new JobKey("jobA", "group1");
+    	JobDetail jobA = JobBuilder.newJob(ReportAction.class).withIdentity(jobKeyA).build();
+ 
+    	JobKey jobKeyB = new JobKey("jobB", "group1");
+    	JobDetail jobB = JobBuilder.newJob(PerformanceAction.class).withIdentity(jobKeyB).build();
+		
+		try {
+			Trigger trigger1 = TriggerBuilder.newTrigger().withIdentity("monthlyRemainderTrigger", "group1").withSchedule(CronScheduleBuilder.cronSchedule("0 0 10 ? * FRI")).build();
+			Trigger trigger2 = TriggerBuilder.newTrigger().withIdentity("weeklyRemainderTrigger", "group1").withSchedule(CronScheduleBuilder.cronSchedule("0 0 10 ? * MON")).build();
+			Scheduler scheduler = new StdSchedulerFactory().getScheduler();
+			scheduler.start();
+			scheduler.scheduleJob(jobA, trigger1);
+			scheduler.scheduleJob(jobB, trigger2);
+		} 
+		catch (SchedulerException e) {
+			e.printStackTrace();
+		}
+	}
+}

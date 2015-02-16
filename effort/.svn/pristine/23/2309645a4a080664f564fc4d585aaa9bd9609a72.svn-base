@@ -1,0 +1,108 @@
+function checkFreezingStatusForSelectedResource(){
+		$('#checkUser').html('');
+		var user_select_box = $('#userId option');
+		var selectedUser = new Array();
+		var count = 0;
+		for(var uId = 0 ; uId < user_select_box.length ;  uId++){
+			if(user_select_box[uId].selected == true){
+				selectedUser[count++] = user_select_box[uId].value;
+			}
+		}	
+		if(selectedUser.length > 0 && (document.getElementById("freezeButtonId")!=null || document.getElementById("unfreezeButtonId")!=null)){
+			$.ajax({
+				type: "POST",
+				url: 'displayReport.do?method=checkFreezingEntryStatusForSelctedResource',
+				data: 'selectedUser='+selectedUser+'',
+				success: function(response){
+					var parentForFreezeButton = "";
+					if(document.getElementById("freezeButtonId")==null){
+						parentForFreezeButton = document.getElementById("unfreezeButtonId").parentNode;
+					}
+					else if(document.getElementById("unfreezeButtonId")==null){
+						parentForFreezeButton = document.getElementById("freezeButtonId").parentNode;
+					}
+					if(response=='session expired'){
+					}
+					else if(response=='true'){
+						parentForFreezeButton.innerHTML="<input type=\"button\" id=\"unfreezeButtonId\" onclick=\"submitReport1('displayReport.do?method=unfreezeTimesheet');\""
+									+"value=\"Unfreeze Timesheet\" style=\"width: 200px; font-family: verdana, arial, sans-serif; font-size: 11px;\"/>";
+						/*$('#messageIds').show();
+						$('#messageIds').html("Please unfreeze timesheet first then go for freezing.");		
+						$('#messageIds').delay(2000).fadeOut();*/
+					}
+					else if(response=='false'){
+						parentForFreezeButton.innerHTML="<input type=\"button\" id=\"freezeButtonId\""
+								+"onclick=\"submitReportForFreezing('displayReport.do?method=freezeTimesheet');\""
+								+"value=\"Freeze Timesheet\" style=\"width: 200px; font-family: verdana, arial, sans-serif; font-size: 11px;\"/>";
+					}
+				},
+				error: function(e){        		   
+				}
+			});
+		}
+	}
+	function resourceSelectionScript(){
+		var selectedResource = new Array();
+		var count = 0;
+		$("#pickSelectedResourceId").children("p").each(function(e,v){
+			selectedResource[count++] = $(v).text();						
+		});
+		var user_select_box = $("#userId option");
+		if(selectedResource.length > 0){
+			user_select_box.removeAttr("selected");
+			for(var uId = 0 ; uId < user_select_box.length; uId++){
+				for ( var ar = 0; ar < selectedResource.length; ar++) {
+					if(user_select_box[uId].value == selectedResource[ar]){
+						user_select_box[uId].selected = true;
+					}
+				}
+			}
+		}
+	}
+	function submitReportManager(url) {
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		var selectedUserId = document.getElementById('userId').value;
+		var selectedteam = document.getElementById('team').value;
+		if (selectedUserId == '' && selectedteam == '') {
+			document.getElementById('checkUser').innerHTML = "<font style='font-family: verdana, arial, sans-serif;font-size: 11px;color:red'>"
+					+ 'Please select a Team or Resource.' + "</font>";
+		} else {
+			formSubmit.submit();
+		}
+	}
+	function submitReport1(url) {
+		document.getElementById('messageIds').innerHTML = "";
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		var selectedUserId = document.getElementById('userId').value;
+		if (selectedUserId == '') {
+			document.getElementById('checkUser').innerHTML = "<font style='font-family: verdana, arial, sans-serif;font-size: 11px;color:red'>"
+					+ 'Please select a Resource.' + "</font>";
+		} else {
+			formSubmit.submit();
+		}
+
+	}
+	function submitReportForFreezing(url) {
+		document.getElementById('messageIds').innerHTML = "";
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		var selectedUserId = document.getElementById('userId').value;
+		if (selectedUserId == '') {
+			document.getElementById('checkUser').innerHTML = "<font style='font-family: verdana, arial, sans-serif;font-size: 11px;color:red'>"
+					+ 'Please select a Resource.' + "</font>";
+		} else {
+			var check = confirm("Do you want to freeze timesheet?");
+			if (check == true) {
+			  formSubmit.submit();
+			}
+		}
+
+	}
+	function submitReport(url) {
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		formSubmit.submit();
+
+	}

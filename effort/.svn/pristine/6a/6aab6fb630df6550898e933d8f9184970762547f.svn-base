@@ -1,0 +1,38 @@
+package com.calsoft.leave.model;
+
+import java.util.Date;
+
+import com.calsoft.user.model.User;
+
+public class ModelLeave {
+	private String complete_leave_date;
+	private Date updated_on;
+	private User user;
+	private String work_category;
+
+	public Date getUpdated_on() {
+		return updated_on;
+	}
+	public void setUpdated_on(Date updated_on) {
+		this.updated_on = updated_on;
+	}
+	public String getWork_category() {
+		return work_category;
+	}
+	public void setWork_category(String work_category) {
+		this.work_category = work_category;
+	}
+	public String getComplete_leave_date() {
+		return complete_leave_date;
+	}
+	public void setComplete_leave_date(String complete_leave_date) {
+		this.complete_leave_date = complete_leave_date;
+	}
+	public User getUser() {
+		return user;
+	}
+	public void setUser(User user) {
+		this.user = user;
+	}
+	
+}

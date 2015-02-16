@@ -1,0 +1,174 @@
+package com.calsoft.util;
+
+import java.sql.Time;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import com.calsoft.task.model.Task;
+import com.calsoft.user.model.User;
+public class TimeUtility 
+{
+	public static Double getYourTime(List<String> totalSum)
+	{		
+
+		Iterator<String> itr = totalSum.iterator();
+		double hrs = 0.0;
+		double mint = 0.0;
+		while(itr.hasNext())
+		{
+			String time1 = itr.next();
+			Time time = Time.valueOf(time1);
+			hrs = hrs+time.getHours();
+			mint = mint+time.getMinutes();
+
+		}
+		if(mint/60 >1)
+		{
+			hrs=hrs+(int)mint/60;
+		}
+		hrs=hrs+mint%60/100;
+
+		return hrs;
+	}
+	public static String getUrsMonth(Date date)
+	{
+		SimpleDateFormat myFormat = new SimpleDateFormat("MMM-yyyy");
+		String reformattedStr = myFormat.format(date);
+
+		return reformattedStr;
+	}
+	public static String getUrsDay(Date date)
+	{
+		SimpleDateFormat myFormat1 = new SimpleDateFormat("d");
+		String reformattedStr1 = myFormat1.format(date);
+		return reformattedStr1;
+	}
+
+	public static boolean isDateInCurrentWeek(Date date) 
+	{
+		Calendar currentCalendar = Calendar.getInstance();
+		int week = currentCalendar.get(Calendar.WEEK_OF_YEAR);
+		int year = currentCalendar.get(Calendar.YEAR);
+		Calendar targetCalendar = Calendar.getInstance();
+		targetCalendar.setTime(date);
+		int targetWeek = targetCalendar.get(Calendar.WEEK_OF_YEAR);
+		int targetYear = targetCalendar.get(Calendar.YEAR);
+		return week == targetWeek && year == targetYear;
+	}
+	public static List<Task> checkDateAndAddMissing(Date d1, List<Task> list2) throws ParseException {	
+		List<Task> list1 = new ArrayList<Task>();
+		SimpleDateFormat s1 = new SimpleDateFormat("dd");
+		SimpleDateFormat s2 = new SimpleDateFormat("MM/dd/yyyy");
+		Calendar c = Calendar.getInstance();
+		c.setTime(d1);
+		Integer i1 = Integer.parseInt(s1.format(d1));
+		User u1 = new User();
+		String name ="";
+		if(!list2.isEmpty()){
+			Task userTask = list2.get(0);
+			u1 = userTask.getUser();
+			name = u1.getUser_name();
+		}
+		for (Task userTask : list2) {					
+			list1.add(userTask);
+		}
+		for(int i = i1 ; i >= 1 ; i--){     // For Today 23 Times Looping				
+			Date dt = c.getTime();
+			String dtString = s2.format(dt);
+			Task tk = new Task();
+			Date dt1 = s2.parse(dtString);
+			tk.setBacklog_id("");
+			tk.setStatus("");
+			tk.setTask_description("Efforts not entered.");
+			tk.setTime("00:00:00");
+			tk.setTask_date(dt1);
+			User u2 = new User();
+			u2.setUser_name(name);
+			tk.setUser(u2);
+			if(c.getTime().getDay()!=0 && c.getTime().getDay()!=6){
+				if(!list1.contains(tk)){
+					list1.add(tk);
+				}
+			}
+			c.add(Calendar.DAY_OF_MONTH, -1);
+		}
+		Collections.sort(list1,Collections.reverseOrder());
+		return  list1;
+	}
+	public static List<String> getAllDatesForPreviousWeek(){		
+		List<String> previousWeekDatesList = new ArrayList<String>();
+		Calendar now = Calendar.getInstance();
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+		now.add(Calendar.WEEK_OF_YEAR, -1);// Add the -1 in the Calendar of WEEK_OF_YEAR for previous week
+		int delta = -now.get(GregorianCalendar.DAY_OF_WEEK) + 2; //add 2 if your week start on monday
+		now.add(Calendar.DAY_OF_MONTH, delta );
+		for (int i = 0; i < 5; i++){     // Discarding Saturday and Sunday dates
+			previousWeekDatesList.add(format.format(now.getTime()));
+			now.add(Calendar.DAY_OF_MONTH, 1);
+		}
+		return previousWeekDatesList;
+	}
+	public static List<String> getAllWorkingDate(Calendar c){
+		List<String> allDates = new ArrayList<String>();
+		SimpleDateFormat s1 = new SimpleDateFormat("dd");
+		Date d1 = c.getTime();
+		Integer i1 = Integer.parseInt(s1.format(d1));
+		for(int i = i1 ; i >= 1 ; i--){     // For Today 23 Times Looping				
+			Date dt = c.getTime();
+			if(c.getTime().getDay()!=0 && c.getTime().getDay()!=6){
+				allDates.add(s1.format(dt));
+			}
+			c.add(Calendar.DAY_OF_MONTH, -1);
+		}
+		Collections.sort(allDates);
+		return allDates;
+	}
+	public static Map<String, String> getCurrentAndPrevoiusMonthDate(){
+		Calendar now = Calendar.getInstance();
+		DateFormat d_format = new SimpleDateFormat("yyyy-MM-dd");
+	    Map<String, String> listCurrentAndPrevoiusMonthDate = new HashMap<String, String>();
+	    listCurrentAndPrevoiusMonthDate.put("currentMonth", d_format.format(now.getTime()));
+	    now.add(Calendar.MONTH, -1);
+	    now.set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.getActualMinimum(Calendar.DAY_OF_MONTH));
+	    listCurrentAndPrevoiusMonthDate.put("previousMonth", d_format.format(now.getTime()));
+		return listCurrentAndPrevoiusMonthDate;
+	}
+	public static List<String> getAllDatesForThisWeek(){
+		List<String> listAllWeekDays = new ArrayList<String>();
+		Calendar now = Calendar.getInstance();
+		Calendar cal = Calendar.getInstance();
+		DateFormat format = new SimpleDateFormat("MM/dd/yyyy");
+		int delta = -now.get(GregorianCalendar.DAY_OF_WEEK)+2; //add 2 if your week start on monday
+		now.add(Calendar.DAY_OF_MONTH, delta);
+		if(cal.get(Calendar.DAY_OF_WEEK)==Calendar.SUNDAY){
+			cal.add(Calendar.WEEK_OF_YEAR, -1);
+			cal.add(Calendar.DAY_OF_MONTH, 1);
+			for (int i = 0; i < cal.get(Calendar.DAY_OF_WEEK); i++){
+				if((Calendar.getInstance().getTime().after(cal.getTime())|| cal.getTime().equals(now.getTime())) && !(cal.get(Calendar.DAY_OF_WEEK)==Calendar.SUNDAY || cal.get(Calendar.DAY_OF_WEEK)==Calendar.SATURDAY)){
+					listAllWeekDays.add(format.format(cal.getTime()));
+				}			
+				cal.add(Calendar.DAY_OF_MONTH, 1);
+			}
+		}
+		else{
+			for (int i = 0; i < cal.get(Calendar.DAY_OF_WEEK); i++){
+				if((cal.getTime().after(now.getTime())|| cal.getTime().equals(now.getTime())) && !(now.get(Calendar.DAY_OF_WEEK)==Calendar.SUNDAY || now.get(Calendar.DAY_OF_WEEK)==Calendar.SATURDAY)){
+					listAllWeekDays.add(format.format(now.getTime()));
+				}			
+				now.add(Calendar.DAY_OF_MONTH, 1);
+			}
+		}
+		Collections.sort(listAllWeekDays, Collections.reverseOrder());
+		return listAllWeekDays;
+	}
+}

@@ -1,0 +1,15 @@
+package com.calsoft.user.service.test;
+
+import junit.framework.TestCase;
+
+import com.calsoft.factory.Factory;
+import com.calsoft.user.dao.UserDaoImpl;
+
+public class TestUserServiceImpl extends TestCase
+{
+    public void testGetUser() throws Exception
+    {
+    	
+    	assertNotNull(Factory.getUserService().getUserNames());
+    }
+}

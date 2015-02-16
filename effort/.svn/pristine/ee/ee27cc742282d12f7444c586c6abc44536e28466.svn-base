@@ -1,0 +1,402 @@
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+<script type="text/javascript">
+ function doPage()
+ {
+	 
+	 var e = document.getElementById("drpLocation");
+	 var strUser = e.options[e.selectedIndex].value;
+	 
+	
+	 
+     if(strUser=="L101")
+    	 {
+   
+	    document.Holiday_View.action = 'holidayListBangalore.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     if(strUser=="L100")
+    	 {
+	    document.Holiday_View.action = 'holidayListChennai.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     if(strUser=="L102")
+    	 {
+	    document.Holiday_View.action = 'holidayListMysore.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     if(strUser=="L103")
+    	 {
+	    document.Holiday_View.action = 'holidayListBoston.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     if(strUser=="L104")
+    	 {
+	    document.Holiday_View.action = 'holidayListFremont.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     if(strUser=="L105")
+    	 {
+	    document.Holiday_View.action = 'holidayListFrance.jsp';
+	    document.Holiday_View.submit();
+    	 }
+  
+ }
+</script>
+<style type="text/css">
+body{font: normal 14px Calibri, Calibri, Calibri;}
+</style>
+<style type="text/css">
+table.hovertable {
+ font-family: verdana,arial,sans-serif;
+ font-size:11px;
+ color:#333333;
+ border-width: 1px;
+ border-color: #999999;
+ border-collapse: collapse;
+ margin-left: 1mm;
+}
+table.hovertable th {
+ background-color:#A5A1A0;
+ border-width: 1px;
+ padding: 8px;
+ border-style: solid;
+ border-color: #a9c6c9;
+}
+table.hovertable tr {
+ background-color:#FFFFFF;
+}
+table.hovertable td {
+ border-width: 1px;
+ padding: 8px;
+ border-style: solid;
+ border-color: #a9c6c9;
+}
+</style>
+<style type="text/css">
+p {
+	margin-left: 13cm;
+	margin-top: 2cm;
+}
+
+div.box {
+	border: solid 1px #a9c6c9;
+	background-color: #FFFFFF;
+	display: table;
+	padding: 0px;
+	width: 290px;
+	align: left;
+	margin-left: 0cm;
+	margin-top: 0cm;
+	text-align: left;
+	font-family: verdana,arial,sans-serif;
+    font-size:11px;
+}
+div.boxMess {
+    border: solid 3px #a9c6c9;
+	border-style: dotted;
+	background-color: #FFFFFF;
+	display: table;
+	padding: 0px;
+	width: 695px;
+	hight:0px;
+	align: left;
+	margin-left: 2px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	text-align: left;
+	color:#F50000;
+	font-family: verdana,arial,sans-serif;
+    font-size:11px;
+}
+</style>
+
+</head>
+<body>
+<div style="font-family:verdana,arial,sans-serif;font-size: 11px; " >
+<form name="Holiday_View" method="post"  id="Holiday_View">
+<div>
+<input name="__EVENTTARGET" id="__EVENTTARGET" value="" type="hidden">
+<input name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" type="hidden">
+<input name="__LASTFOCUS" id="__LASTFOCUS" value="" type="hidden">
+<input name="__VIEWSTATE" id="__VIEWSTATE" value="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" type="hidden">
+</div>
+
+<script type="text/javascript">
+<!--
+var theForm = document.forms['Holiday_View'];
+if (!theForm) {
+    theForm = document.Holiday_View;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+// -->
+</script>
+
+
+<script src="/Officeconnect/WebResource.axd?d=e-WSLoNMOyb0ghh9RP0Qww2&amp;t=633657459045625000" type="text/javascript"></script>
+
+
+<script src="/Officeconnect/ScriptResource.axd?d=2p2sY2QM0_SiLBB1qOPKn-qZMk17yOPR157TdnBHeOchN5bz9Y5wM1n3oY_mDjhLMTHAaxC1PMgTFIDxv3iwqJbdJRNPlXCM6e5alM6ASvU1&amp;t=633293460919531250" type="text/javascript"></script>
+<script src="/Officeconnect/ScriptResource.axd?d=2p2sY2QM0_SiLBB1qOPKn-qZMk17yOPR157TdnBHeOchN5bz9Y5wM1n3oY_mDjhLMTHAaxC1PMgTFIDxv3iwqCb6oyh29gSb3hEKTi-j8k41&amp;t=633293460919531250" type="text/javascript"></script>
+<script src="../Includes/Script/validation.js" type="text/javascript"></script>
+      
+<link rel="stylesheet" media="all" type="text/css" href="../includes/tab-view.css">
+		<link rel="stylesheet" media="all" type="text/css" href="../includes/menu-bar.css">
+	<!-- <table height="36" border="0" cellpadding="0" cellspacing="0" width="100%">
+  <tbody><tr>
+    <td height="36" background="../Images/menu-bar/inner-topgrabarbg.jpg" valign="top" width="72%">
+	<div id="toolheader">
+	
+	<table border="0" cellpadding="0" cellspacing="0" width="98%">
+  <tbody><tr>
+    <td height="36" align="left" valign="middle" width="8%">
+	<div id="toollogo"><img src="../Images/icon_holiday_list.png"></div>
+	
+	</td>
+    <td height="36" width="91%">
+	<div id="menuheading">	
+	Holiday List	</div>
+	
+		</td>
+  </tr>
+</tbody></table>
+
+	
+
+</div>
+</td>
+    <td style="border-right: 1px solid rgb(220, 220, 220);" background="../Images/menu-bar/inner-topgrabarbg.jpg" valign="middle" width="28%">
+	<div id="toolmenu">
+	
+		<div>
+		
+      </div>
+
+		
+	</div></td>
+  </tr>
+</tbody></table>    -->
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('scriptmanager', document.getElementById('Holiday_View'));
+Sys.WebForms.PageRequestManager.getInstance()._updateControls(['tUpdatePanel1'], [], ['imgbtnExport'], 90);
+//]]>
+</script>
+
+        <div class="holidad_padlft_05">
+            <div id="UpdatePanel1">
+                    
+                    <div>
+                        <!--cont frame div-->
+                        <div id="Navigationcontainer">
+                            <div style="display: none;">
+                                
+                                <span id="lblError" style="display: inline-block; color: Red; font-family: verdana; font-size: x-small; height: 15px; width: 219px;"></span>
+                                
+                            </div>
+                            
+                            
+                            <div>
+                                <div style="font-family: verdana, arial, sans-serif;font-size: 12px;font-weight: bold;color: #0000FF;text-align: left;position: absolute;">List of Holidays</div> 
+                                
+                                <div>
+                                    <table>
+                                        <tbody><tr>
+                                            <td align="left" width="200">
+                                                <!-- <input name="imgbtnExport" id="imgbtnExport" title="Export" src="../Images/export.png" style="border-width: 0px;" type="image"> -->
+                                            </td>
+                                            
+                                            <td align="right" width="800">
+                                              <!--  <span id="lblYear">Year <b>2012</b></span> -->
+                                                <!-- <select name="drpYear" onchange="javascript:setTimeout('__doPostBack(\'drpYear\',\'\')', 0)" id="drpYear">
+	<option value="2011">2011</option>
+	<option selected="selected" value="2012">2012</option>
+
+</select> -->
+                                            
+                                               
+                                                
+                                                 <span id="lblLocation">Location</span>
+                                                <select name="drpLocation" onchange="doPage();" id="drpLocation" style="font-family:verdana,arial,sans-serif;font-size: 11px;">
+	<option  value="L101" style="font-family:verdana,arial,sans-serif;font-size: 11px;">Bengaluru</option>
+	<option  value="L100" style="font-family:verdana,arial,sans-serif;font-size: 11px;">Chennai</option>
+	<option  value="L102" style="font-family:verdana,arial,sans-serif;font-size: 11px;">Mysore</option>
+	<option  value="L103" style="font-family:verdana,arial,sans-serif;font-size: 11px;">Boston</option>
+	<option selected="selected" value="L104" style="font-family:verdana,arial,sans-serif;font-size: 11px;">Fremont</option>
+	<option value="L105" style="font-family:verdana,arial,sans-serif;font-size: 11px;">France</option>
+
+</select>
+                                            </td>
+                                        </tr>
+                                    </tbody></table>
+                                </div>
+                                <div class="clear">
+                                </div>
+                                <div id="HomeGrid" style="background: none repeat scroll 0% 0% transparent;">
+                                    <table rules="all" id="dgrHolidayView" style="width: 100%; border-collapse: collapse;font-family:verdana,arial,sans-serif;font-size: 11px;" align="center" border="1" cellspacing="0">
+	<tbody><tr class="bgh">
+		<td>
+                                                    <span id="dgrHolidayView_ctl01_lblHolidayDate">Holiday Date</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl01_lblHolidayDay">Day</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl01_lblHolidayName">Holiday Name</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl01_lblLocationName">Location Name</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl01_lblOptional">Optional</span>
+                                                </td>
+	</tr><tr class="data" style="height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl02_GrdHolidayDate" class="DgItems">2nd January 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl02_GrdHolidayDay" class="DgItems">Monday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl02_GrdHolidayName" class="DgItems">New Years Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl02_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl02_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="background-color: rgb(248, 248, 248); height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl03_GrdHolidayDate" class="DgItems">16th January 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl03_GrdHolidayDay" class="DgItems">Monday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl03_GrdHolidayName" class="DgItems">Martin Luther King, Jr. Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl03_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl03_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl04_GrdHolidayDate" class="DgItems">20th February 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl04_GrdHolidayDay" class="DgItems">Monday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl04_GrdHolidayName" class="DgItems">Presidents Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl04_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl04_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="background-color: rgb(248, 248, 248); height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl05_GrdHolidayDate" class="DgItems">6th April 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl05_GrdHolidayDay" class="DgItems">Friday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl05_GrdHolidayName" class="DgItems">Good Friday</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl05_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl05_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl06_GrdHolidayDate" class="DgItems">28th May 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl06_GrdHolidayDay" class="DgItems">Monday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl06_GrdHolidayName" class="DgItems">Memorial Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl06_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl06_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="background-color: rgb(248, 248, 248); height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl07_GrdHolidayDate" class="DgItems">4th July 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl07_GrdHolidayDay" class="DgItems">Wednesday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl07_GrdHolidayName" class="DgItems">Independence Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl07_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl07_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl08_GrdHolidayDate" class="DgItems">3rd September 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl08_GrdHolidayDay" class="DgItems">Monday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl08_GrdHolidayName" class="DgItems">Labor Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl08_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl08_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="background-color: rgb(248, 248, 248); height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl09_GrdHolidayDate" class="DgItems">22nd November 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl09_GrdHolidayDay" class="DgItems">Thursday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl09_GrdHolidayName" class="DgItems">Thanksgiving Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl09_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl09_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl10_GrdHolidayDate" class="DgItems">23rd November 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl10_GrdHolidayDay" class="DgItems">Friday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl10_GrdHolidayName" class="DgItems">Day after Thanksgiving</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl10_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl10_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr><tr class="data" style="background-color: rgb(248, 248, 248); height: 25px;">
+		<td>
+                                                    <span id="dgrHolidayView_ctl11_GrdHolidayDate" class="DgItems">25th December 2012</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl11_GrdHolidayDay" class="DgItems">Tuesday</span>
+                                                </td><td>
+                                                    <span id="dgrHolidayView_ctl11_GrdHolidayName" class="DgItems">Christmas Day</span>
+                                                </td><!-- <td>
+                                                    <span id="dgrHolidayView_ctl11_GrdLocationName" class="DgItems">Fremont</span>
+                                                </td> --><td>
+                                                    <span id="dgrHolidayView_ctl11_GrdOptional" class="DgItems"></span>
+                                                </td>
+	</tr>
+</tbody></table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    
+<div>
+
+	<input name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEWDAK5puGgDgKnrf6hCAL3ltCQCgK0gYfRCwK0gZP2AgKx/5v2BgKVp6GBBwLP0dLxBgLP0bqnCALP0f7JAgKo57D9BgKF/uqgDX8FglaHpdjqTDHnzG7OM9egmfVV" type="hidden">
+</div>
+
+<script type="text/javascript">
+<!--
+Sys.Application.initialize();
+// -->
+</script>
+</form>
+</div>
+</body>
+</html>

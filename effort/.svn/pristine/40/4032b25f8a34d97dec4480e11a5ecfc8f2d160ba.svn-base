@@ -1,0 +1,575 @@
+package com.calsoft.task.dao;
+
+import java.awt.image.RescaleOp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.criterion.Restrictions;
+
+import com.calsoft.leave.model.Leave;
+import com.calsoft.task.model.Task;
+import com.calsoft.user.model.Contact;
+import com.calsoft.user.model.User;
+import com.calsoft.util.HbnUtil;
+import com.calsoft.util.TimeUtility;
+
+public class SaveTaskDaoImpl implements SaveTaskDao {
+
+	private static final Logger logger = Logger.getLogger("name");
+	@Override
+	public String[] doSaveTask(Task task) throws Exception {
+		String[] idMessage = new String[2];
+		String entrySatus = null;
+		Session session = HbnUtil.getSession();
+		Transaction taskTx = session.beginTransaction();
+		DateFormat	formatter = new SimpleDateFormat("yyyy-MM-dd");
+		String date = formatter.format(task.getTask_date()); 
+		int user_id = task.getUser().getUser_Id();
+		Query query = null;
+		try{
+			query = session.createSQLQuery("Select SEC_TO_TIME(SUM(TIME_TO_SEC(time)))as TotalHrs FROM employee_task_detail where user_id = "+user_id+" and task_date='"+date+"'");
+			List<Object> list = query.list();
+			List<String> totalTimeList = new ArrayList<String>();
+			if(list!=null && list.get(0)!=null){
+				String getUserTime = list.get(0).toString();
+				totalTimeList.add(getUserTime);
+				totalTimeList.add(task.getTime());	
+				Double total = TimeUtility.getYourTime(totalTimeList);
+				if(total>23){
+					session.close();
+					entrySatus = "Invalid entry for Time";
+					idMessage[0] = entrySatus;
+				}
+				else{
+					String status = task.getStatus();
+					if(status.equalsIgnoreCase("Leave")||status.equalsIgnoreCase("Half Day")||status.equalsIgnoreCase("Comp off")){
+						try{
+							DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+							Date date1 = new Date();
+							String d1 = dateFormat.format(date1);
+							Date sysDate = (Date) dateFormat.parse(d1);
+							Leave leave = new Leave();
+							SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+							Date d22 = formatter.parse(date);
+							String any = sm11.format(d22);
+							SimpleDateFormat sm22 = new SimpleDateFormat("d");
+							List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+sm22.format(d22)+"' and leave_month='"+any+"' and user_id="+user_id).list();
+							if(listCh!=null && listCh.isEmpty()){
+								leave.setLeave_date(sm22.format(d22));
+								leave.setLeave_month(any);
+								leave.setUpdated_on(sysDate);					
+								User user = new User();
+								user.setUser_Id(user_id);
+								leave.setUser(user);
+								session.save(leave);
+							}
+						}
+						catch (Exception e){
+							e.printStackTrace();
+							throw new Exception();
+						}
+					}
+					session.save(task);
+					taskTx.commit();
+					entrySatus ="Data entered sucessfully";
+					idMessage[0] = entrySatus;
+					idMessage[1] = Integer.valueOf(task.getId()).toString();
+				}
+			}
+			else{
+				String status = task.getStatus();
+				if(status.equalsIgnoreCase("Leave")||status.equalsIgnoreCase("Half Day")||status.equalsIgnoreCase("Comp off")){
+					try{
+						DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+						Date date1 = new Date();
+						String d1 = dateFormat.format(date1);
+						Date sysDate = (Date) dateFormat.parse(d1);
+						Leave leave = new Leave();
+						SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+						Date d22 = formatter.parse(date);
+						String any = sm11.format(d22);
+						SimpleDateFormat sm22 = new SimpleDateFormat("d");						
+						List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+sm22.format(d22)+"' and leave_month='"+any+"' and user_id="+user_id ).list();
+						if(listCh!=null && listCh.isEmpty()){
+							leave.setLeave_date(sm22.format(d22));
+							leave.setLeave_month(any);
+							leave.setUpdated_on(sysDate);					
+							User user = new User();
+							user.setUser_Id(user_id);
+							leave.setUser(user);
+							session.save(leave);
+						}
+					}
+					catch (Exception e){
+						e.printStackTrace();
+						throw new Exception();
+					}
+				}
+				session.save(task);
+				taskTx.commit();
+				entrySatus ="Data entered sucessfully";
+				idMessage[0] = entrySatus;
+				idMessage[1] = Integer.valueOf(task.getId()).toString();
+			}		
+		}		 
+		catch (Exception e){
+			session.close();
+			entrySatus = "Invalid entry for Time";
+			idMessage[0] = entrySatus;
+			e.printStackTrace();
+			logger.error(e);
+		}
+		return idMessage;
+	}
+
+	public List getTaskDetails(String month,int userId) throws Exception {
+		List<Object> tList = null;
+		Session session = HbnUtil.getSession();
+		session.beginTransaction();
+		List<Task> taskList = new ArrayList<Task>();
+		String sqlQuery ="select id,backlog_id,task_id,task_description,ROUND(time/10000,2) as time,task_date,status,user_id,work_status from employee_task_detail where user_id="+userId+" and  task_date like '"+ month+"%' ORDER BY task_date DESC";
+		Query query = session.createSQLQuery(sqlQuery);
+		tList = query.list();
+		Iterator<Object> itr = tList.iterator();
+		while (itr.hasNext()) {
+			Task task = new Task();
+			Object[] obj = (Object[]) itr.next();
+			int id = ((Integer) obj[0]).intValue();
+			String backlogId = (String) obj[1];
+			String taskId = (String) obj[2];
+			String taskDescription = (String) obj[3];
+			Double time = (Double) obj[4];
+			String timeString = time.toString();
+			Date date = (Date) obj[5];
+			String status = (String) obj[6];
+			int userid = ((Integer) obj[7]).intValue();
+			String work_status = (String) obj[8];
+			task.setId(id);
+			task.setBacklog_id(backlogId);
+			task.setStatus(status);
+			task.setTask_date(date);
+			task.setTask_description(taskDescription);
+			task.setTask_id(taskId);
+			if(work_status==null){
+				work_status = "";
+			}
+			task.setWork_status(work_status);
+			String sqlNowEntry = "SELECT * FROM leave_detail where leave_detail.leave_month='"+TimeUtility.getUrsMonth(date)+"' and leave_date="+TimeUtility.getUrsDay(date)+" and leave_detail.user_id="+userId+" ";
+			List listDate = session.createSQLQuery(sqlNowEntry).list();
+			if(!listDate.isEmpty()){
+				task.setTime(timeString+" ");
+			}	
+			else{
+				task.setTime(timeString);
+			}
+			taskList.add(task);
+		}
+		session.getTransaction().commit();
+		session.close();
+		return taskList;
+	}
+
+	public boolean doDelete(int id) throws Exception{
+		Session session = HbnUtil.getSession();
+		boolean deleteFlag = false;
+		Transaction tx = session.beginTransaction();
+		String taskSt = "from Task task where task.id = " + id;
+		List<Task> querySt = session.createQuery(taskSt).list();
+		Iterator<Task> itrTask = querySt.iterator();
+		if(itrTask.hasNext()){
+			Task task = (Task) itrTask.next();
+			String taskStatus = task.getStatus();
+			Date taskDate = task.getTask_date();
+			SimpleDateFormat sm = new SimpleDateFormat("yyyy-MM-dd");
+			String formatedDate = sm.format(taskDate);
+			int user_id = task.getUser().getUser_Id();
+			if(taskStatus.equalsIgnoreCase("Leave")||taskStatus.equalsIgnoreCase("Half Day")||taskStatus.equalsIgnoreCase("Comp off")){
+				Query query = session.createQuery("from Task where user_id="+user_id+" and task_date='"+formatedDate+"' and (status = 'Leave' or status= 'Half Day' or status= 'Comp off')");
+				List<Task> list = query.list();
+				if(!list.isEmpty() && list.size()==1){
+					SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+					String any = sm11.format(taskDate);
+					SimpleDateFormat sm22 = new SimpleDateFormat("d");
+					String date = sm22.format(taskDate);					
+					List qurList = session.createSQLQuery("select id from leave_detail where leave_month='"+any+"' and leave_date='"+date+"' and user_id="+user_id).list();
+					if(!qurList.isEmpty()){
+						Iterator<Integer> itrId = qurList.iterator();
+						if(itrId.hasNext()){
+							int idForLeave = (Integer)itrId.next();
+							Query quryDel = session.createQuery("delete from Leave where id="+idForLeave);
+							quryDel.executeUpdate();
+						}
+					}
+				}
+			}
+		}				
+		///////////////////////////  Above code for delete 
+		String hql = "delete from Task task where task.id = " + id;
+		Query query = session.createQuery(hql);
+		int row = query.executeUpdate();
+		if (row > 0){
+			deleteFlag = true;
+		}
+		tx.commit();
+		return deleteFlag;
+	}
+	@Override
+	public List<Task> editTask(int id) throws Exception{
+		List tList = null;
+		Session session = HbnUtil.getSession();
+		String hqlQuery = "From Task task where task.id="+id;
+		Query query = session.createQuery(hqlQuery);
+		tList = query.list();
+		return tList;
+	}
+	@Override
+	public String editSaveTask(Task task,int id,int user_id) throws Exception{
+		String entrySatus = null;
+		DateFormat	formatter = new SimpleDateFormat("yyyy-MM-dd");
+		String date = formatter.format(task.getTask_date());  
+		Session session=HbnUtil.getSession();
+		Transaction taskTx = session.beginTransaction();
+		Query query = null;
+		SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+		Date d22 = formatter.parse(date);
+		String any = sm11.format(d22);
+		SimpleDateFormat sm22 = new SimpleDateFormat("d");
+		String dString = sm22.format(d22);
+		try{
+			query = session.createSQLQuery("Select SEC_TO_TIME(SUM(TIME_TO_SEC(time)))as TotalHrs FROM employee_task_detail where user_id = "+user_id+" and task_date='"+date+"' and id!="+id+"");
+			List<Object> list = query.list();
+			List<String> totalTimeList = new ArrayList<String>();
+			if(list!=null && list.get(0)!=null){
+				String getUserTime = list.get(0).toString();
+				totalTimeList.add(getUserTime);
+				totalTimeList.add(task.getTime());	
+				Double total = TimeUtility.getYourTime(totalTimeList);
+				if(total>23){
+					session.close();
+					entrySatus = "Invalid entry for Time";
+				}
+				else{
+					Query qr = session.createSQLQuery("select status from employee_task_detail where user_id="+user_id+" and (status='Leave' or status='Half Day' or status= 'Comp off') and task_date='"+date+"'");
+					List listStatus = qr.list();
+					if(!listStatus.isEmpty() && !(task.getStatus().equalsIgnoreCase("Leave")||task.getStatus().equalsIgnoreCase("Half Day")||task.getStatus().equalsIgnoreCase("Comp off")) && listStatus.size()==1){
+						Iterator<String> itr = listStatus.iterator();
+						if (itr.hasNext()){
+							List qurList = session.createSQLQuery("select id from leave_detail where leave_month='"+any+"' and leave_date='"+dString+"' and user_id="+user_id).list();
+							if(!qurList.isEmpty()){
+								int leave_id = 0;
+								Iterator<Integer> itr1= qurList.iterator();
+								if(itr1.hasNext()){								
+									leave_id = 	(Integer) itr1.next();
+								}
+								Query qr1 = session.createSQLQuery("delete from leave_detail where id="+leave_id);
+								qr1.executeUpdate();
+							}							
+						}																		
+					}
+					//Ended Here!!! Before update entry check status and update Leave Calendar.
+					else if((listStatus.isEmpty()||listStatus.size()==0) && (task.getStatus().equalsIgnoreCase("Leave")||task.getStatus().equalsIgnoreCase("Half Day")||task.getStatus().equalsIgnoreCase("Comp off"))){
+						Leave leave = new Leave();					
+						List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+dString+"' and leave_month='"+any+"' and user_id="+user_id).list();
+						DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+						Date date1 = new Date();
+						String d1 = dateFormat.format(date1);
+						Date sysDate = (Date) dateFormat.parse(d1);
+						if(listCh!=null && listCh.isEmpty()){
+							leave.setLeave_date(dString);
+							leave.setLeave_month(any);
+							leave.setUpdated_on(sysDate);					
+							User user = new User();
+							user.setUser_Id(user_id);
+							leave.setUser(user);
+							session.save(leave);
+						}
+					}
+					String task_disc = task.getTask_description().replace("'", "`");		
+					String sqlQuery = "update employee_task_detail set backlog_id='"+task.getBacklog_id()+"',task_id='"+task.getTask_id()+"',task_description='"+task_disc+"',time='"+task.getTime()+"',task_date='"+date+"',status='"+task.getStatus()+"',work_status='"+task.getWork_status()+"' where id='"+id+"' ";
+					query = session.createSQLQuery(sqlQuery);
+					query.executeUpdate();
+					taskTx.commit();
+					entrySatus ="Data edited sucessfully";
+				}
+
+			}
+			else
+			{
+				// Single entry for that day than single id.			
+				Query qr = session.createSQLQuery("select status from employee_task_detail where id="+id+" and (status='Leave' or status='Half Day' or status= 'Comp off')");
+				List listStatus = qr.list();
+				if(!listStatus.isEmpty() && !(task.getStatus().equalsIgnoreCase("Leave")||task.getStatus().equalsIgnoreCase("Half Day")||task.getStatus().equalsIgnoreCase("Comp off")))
+				{
+					Iterator<String> itr = listStatus.iterator();
+					if (itr.hasNext())
+					{
+						List qurList = session.createSQLQuery("select id from leave_detail where leave_month='"+any+"' and leave_date='"+dString+"' and user_id="+user_id).list();
+						if(!qurList.isEmpty())
+						{
+							int leave_id = 0;
+							Iterator<Integer> itr1= qurList.iterator();
+							if(itr1.hasNext()) 
+							{								
+								leave_id = 	(Integer) itr1.next();
+							}
+							Query qr1 = session.createSQLQuery("delete from leave_detail where id="+leave_id);
+							qr1.executeUpdate();
+						}							
+					}																		
+				}
+				else if((task.getStatus().equalsIgnoreCase("Leave")||task.getStatus().equalsIgnoreCase("Half Day")||task.getStatus().equalsIgnoreCase("Comp off")))
+				{
+					Leave leave = new Leave();					
+					List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+dString+"' and leave_month='"+any+"' and user_id="+user_id).list();
+					DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+					Date date1 = new Date();
+					String d1 = dateFormat.format(date1);
+					Date sysDate = (Date) dateFormat.parse(d1);
+					if(listCh!=null && listCh.isEmpty())
+					{
+						leave.setLeave_date(dString);
+						leave.setLeave_month(any);
+						leave.setUpdated_on(sysDate);					
+						User user = new User();
+						user.setUser_Id(user_id);
+						leave.setUser(user);
+						session.save(leave);
+					}
+				}
+				String task_disc = task.getTask_description().replace("'", "`");		
+				String sqlQuery = "update  employee_task_detail set backlog_id='"+task.getBacklog_id()+"',task_id='"+task.getTask_id()+"',task_description='"+task_disc+"',time='"+task.getTime()+"',task_date='"+date+"',status='"+task.getStatus()+"',work_status='"+task.getWork_status()+"' where id='"+id+"' ";
+				query = session.createSQLQuery(sqlQuery);
+				query.executeUpdate();
+				taskTx.commit();
+				entrySatus ="Data edited sucessfully";
+			}		
+		}		 
+		catch (Exception e) 
+		{
+			session.close();
+			entrySatus = "Invalid entry for Time";
+			e.printStackTrace();
+		}		
+		return entrySatus;
+	}
+
+	@Override
+	public List<List<Task>> getTaskDetailsUser(String[] allocatedResource, String year, String month) throws Exception{
+		List<List<Task>> superTaskList = new ArrayList<List<Task>>();
+		Session session = HbnUtil.getSession();
+		Transaction taskTx = session.beginTransaction();
+		for (int i = 0; i < allocatedResource.length; i++) 
+		{
+			List<Task> taskList = new ArrayList<Task>();
+			int userId = Integer.parseInt(allocatedResource[i]);
+			String sqlQuery = "from Task where user_id="
+					+ userId
+					+ " and task_date like '"
+					+ year
+					+ "-"
+					+ month
+					+ "%" + "' order by task_date DESC";
+			Query query = session.createQuery(sqlQuery);
+			taskList =query.list();			
+			if(taskList.isEmpty()){
+				Task task = new Task();
+				List<User> userNameList = session.createQuery("from User u where u.user_Id="+userId+"").list();
+				if(!userNameList.isEmpty()){
+					Iterator<User> iterateUser = userNameList.iterator();
+					if(iterateUser.hasNext()){
+						User u1 = iterateUser.next();
+						task.setUser(u1);
+					}
+				}
+				Calendar calendar = new GregorianCalendar(Integer.parseInt(year), Integer.parseInt(month)-1, Calendar.DAY_OF_MONTH);
+				calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMinimum(Calendar.DAY_OF_MONTH));									
+				task.setTask_date(calendar.getTime());
+				task.setBacklog_id("");
+				task.setStatus("");
+				task.setTask_id("");
+				task.setTask_description("Efforts not entered.");
+				task.setTime("00:00:00");
+				task.setWork_status("");
+				taskList.add(task);
+			}			
+			superTaskList.add(taskList);	 
+		}
+		taskTx.commit();
+		return superTaskList;	
+	}
+
+	@Override
+	public List<String> saveAllTask(List<Task> taskList) throws Exception {
+		List<String> stringList = new ArrayList<String>();
+		DateFormat	formatter = new SimpleDateFormat("yyyy-MM-dd");
+		Session session = HbnUtil.getSession();		
+		if(taskList!=null)
+		{
+			for (Task task : taskList) {
+				String date = formatter.format(task.getTask_date()); 
+				int user_id = task.getUser().getUser_Id();
+				Transaction taskTx = session.beginTransaction();
+				Query query = null;
+				try{
+					query = session.createSQLQuery("Select SEC_TO_TIME(SUM(TIME_TO_SEC(time)))as TotalHrs FROM employee_task_detail where user_id = "+user_id+" and task_date='"+date+"'");
+					List<Object> list = query.list();
+					List<String> totalTimeList = new ArrayList<String>();
+					if(list!=null && list.get(0)!=null){
+						String getUserTime = list.get(0).toString();
+						totalTimeList.add(getUserTime);
+						totalTimeList.add(task.getTime());	
+						Double total = TimeUtility.getYourTime(totalTimeList);
+						if(total>23){
+							stringList.add("0");
+						}
+						else{
+							String status = task.getStatus();
+							if(status.equalsIgnoreCase("Leave")||status.equalsIgnoreCase("Half Day")||status.equalsIgnoreCase("Comp off")){
+								try{
+									DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+									Date date1 = new Date();
+									String d1 = dateFormat.format(date1);
+									Date sysDate = (Date) dateFormat.parse(d1);
+									Leave leave = new Leave();
+									SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+									Date d22 = formatter.parse(date);
+									String any = sm11.format(d22);
+									SimpleDateFormat sm22 = new SimpleDateFormat("d");
+									List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+sm22.format(d22)+"' and leave_month='"+any+"' and user_id="+user_id).list();
+									if(listCh!=null && listCh.isEmpty()){
+										leave.setLeave_date(sm22.format(d22));
+										leave.setLeave_month(any);
+										leave.setUpdated_on(sysDate);					
+										User user = new User();
+										user.setUser_Id(user_id);
+										leave.setUser(user);
+										session.save(leave);
+									}
+								}
+								catch (Exception e){
+									e.printStackTrace();
+									throw new Exception();
+								}
+
+							}
+							session.save(task);	
+							stringList.add(Integer.valueOf(task.getId()).toString());
+						}
+					}
+					else{
+						String status = task.getStatus();
+						if(status.equalsIgnoreCase("Leave")||status.equalsIgnoreCase("Half Day")||status.equalsIgnoreCase("Comp off")){
+							try{
+								DateFormat dateFormat = new SimpleDateFormat("MMMM dd yyyy");
+								Date date1 = new Date();
+								String d1 = dateFormat.format(date1);
+								Date sysDate = (Date) dateFormat.parse(d1);
+								Leave leave = new Leave();
+								SimpleDateFormat sm11 = new SimpleDateFormat("MMM-yyyy");
+								Date d22 = formatter.parse(date);
+								String any = sm11.format(d22);
+								SimpleDateFormat sm22 = new SimpleDateFormat("d");						
+								List listCh = session.createSQLQuery("select *From leave_detail  where leave_date='"+sm22.format(d22)+"' and leave_month='"+any+"' and user_id="+user_id ).list();
+								if(listCh!=null && listCh.isEmpty()){
+									leave.setLeave_date(sm22.format(d22));
+									leave.setLeave_month(any);
+									leave.setUpdated_on(sysDate);					
+									User user = new User();
+									user.setUser_Id(user_id);
+									leave.setUser(user);
+									session.save(leave);
+								}
+							}
+							catch (Exception e){
+								e.printStackTrace();
+								throw new Exception();
+							}
+						}
+						session.save(task);	
+						stringList.add(Integer.valueOf(task.getId()).toString());				
+					}	
+					taskTx.commit();
+				}		 
+				catch (Exception e) {
+					e.printStackTrace();
+					stringList.add("0");
+				}			
+			}
+		}	
+		return stringList;
+	}
+	@Override
+	public List<List<Task>> getTaskDetailsTeamWise(String[] detailsTeam, String year, String month) throws Exception {
+		List<List<Task>> superTaskList = new ArrayList<List<Task>>();
+		Session session = HbnUtil.getSession();
+		for (int i = 0; i < detailsTeam.length; i++) {
+			Query q1 = session.createSQLQuery("select distinct(con.user_id) from contact as con where con.team='"+detailsTeam[i]+"'");
+			List<Integer> user_list = q1.list();
+			Iterator<Integer> itr = user_list.iterator();
+			while(itr.hasNext()){
+				int user_id = itr.next();
+				List<Task> taskList = new ArrayList<Task>();
+				String sqlQuery = "from Task where user_id="
+						+ user_id
+						+ " and task_date like '"
+						+ year
+						+ "-"
+						+ month
+						+ "%" + "' order by task_date DESC";
+				Transaction taskTx = session.beginTransaction();
+				Query query = session.createQuery(sqlQuery);
+				taskList =query.list();				
+				if(taskList.isEmpty()){
+					Task task = new Task();
+					List<User> userNameList = session.createQuery("from User u where u.user_Id="+user_id+"").list();
+					if(!userNameList.isEmpty()){
+						Iterator<User> iterateUser = userNameList.iterator();
+						if(iterateUser.hasNext()){
+							User u1 = iterateUser.next();
+							task.setUser(u1);
+						}
+					}
+					Calendar calendar = new GregorianCalendar(Integer.parseInt(year), Integer.parseInt(month)-1, Calendar.DAY_OF_MONTH);
+					calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMinimum(Calendar.DAY_OF_MONTH));									
+					task.setTask_date(calendar.getTime());
+					task.setBacklog_id("");
+					task.setStatus("");
+					task.setTask_id("");
+					task.setTask_description("Efforts not entered.");
+					task.setTime("00:00:00");
+					task.setWork_status("");
+					taskList.add(task);
+				}				
+				superTaskList.add(taskList);
+				taskTx.commit();
+			}
+		}
+		return superTaskList;	
+	}
+   //Getting resource detail from DB
+	@Override
+	public String getResourceTeam(int userId) throws Exception {
+		String teamDetail = null;
+		Session session = HbnUtil.getSession();
+		Transaction taskTx = session.beginTransaction();
+		if(userId!=0){
+			List<Object> contactList =  session.createSQLQuery("Select distinct(team) from contact con where user_id="+userId).list();			
+			if(!contactList.isEmpty()){
+				teamDetail = contactList.get(0).toString();
+			}
+		}
+		taskTx.commit();
+		session.close();
+		return teamDetail;
+	}
+}

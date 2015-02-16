@@ -1,0 +1,75 @@
+table.sortable1 {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	align: center;
+}
+table.sortable1 td {
+	vertical-align: top;
+}
+table.sortable {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	border-width: 1px;
+	border-color: #999999;
+	align: center;
+	border-collapse: collapse;
+}
+
+table.sortable thead {
+	cursor: pointer;
+}
+
+table.sortable th {
+	background-color: #A5A1A0;
+	border-width: 1.5px;
+	padding: 0px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+table.sortable tr {
+	background-color: #FFFFFF;
+}
+
+table.sortable td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+table.sortable tr:nth-child(odd) {
+	background-color: #eee;
+}
+
+table.sortable tr:nth-child(even) {
+	background-color: #fff;
+}
+
+table.sortable input {
+	border-color: #3C3CFF;
+}
+
+table.sortable textarea {
+	border-color: #3C3CFF;
+}
+
+table.sortable select {
+	border-color: #3C3CFF;
+}
+.overlay {
+	position: absolute;
+	top: 25%;
+	left: 40%;
+	width: 25%;
+	height: 25%;
+	text-align: center;
+	cursor:wait;
+}
+
+#loading_image {
+	opacity: 0.8;
+	filter: alpha(opacity = 80); /* For IE8 and earlier */
+}

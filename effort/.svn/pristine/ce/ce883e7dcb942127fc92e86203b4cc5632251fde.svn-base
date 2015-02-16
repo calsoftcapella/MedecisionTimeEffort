@@ -1,0 +1,292 @@
+package com.calsoft.user.form;
+
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.apache.struts.action.ActionErrors;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.action.ActionMessage;
+
+import com.calsoft.factory.Factory;
+import com.calsoft.user.service.UserService;
+
+public class UserForm extends ActionForm implements Comparable<UserForm>{
+	
+	private static final long serialVersionUID = 1L;
+    private String newPassword;
+	private String passWord;
+	private String mail;
+	private String confirmPassword;
+	private int userId;
+	private String userName;
+	private String status;
+	private String defpass; //Global
+	private String user_role;
+	private String commObj;
+	private String specObj;
+	
+	public String getCommObj() {
+		return commObj;
+	}
+	public void setCommObj(String commObj) {
+		this.commObj = commObj;
+	}
+	public String getSpecObj() {
+		return specObj;
+	}
+	public void setSpecObj(String specObj) {
+		this.specObj = specObj;
+	}
+	public String getUser_role() {
+		return user_role;
+	}
+	public void setUser_role(String user_role) {
+		this.user_role = user_role;
+	}
+	public String getNewPassword()
+	  {
+		 return newPassword;
+	  }
+	public void setNewPassword(String newPassword)
+	  {
+		 this.newPassword = newPassword;
+	  }
+	public String getStatus() {
+		return status;
+	}
+	/**
+	 * @param status the status to set
+	 */
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public int getUserId() {
+		return userId;
+	}
+	public void setUserId(int userId) {
+		this.userId = userId;
+	}
+	public String getUserName() {
+		return userName;
+	}
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+
+	public String getPassWord() {
+		return passWord;
+	}
+	public void setPassWord(String passWord) {
+		this.passWord = passWord;
+	}
+
+	public String getMail() {
+		return mail;
+	}
+	public void setMail(String mail) {
+		this.mail = mail;
+	}
+	public String getConfirmPassword() {
+		return confirmPassword;
+	}
+	public void setConfirmPassword(String confirmPassword) {
+		this.confirmPassword = confirmPassword;
+	}
+	public String getDefpass() {
+		return defpass;
+	}
+	public void setDefpass(String defpass) {
+		this.defpass = defpass;
+	}
+	@Override
+	public ActionErrors validate(ActionMapping mapping,HttpServletRequest request) 
+	{
+		ActionErrors errors = new ActionErrors();
+		// validation for Login page starts //
+		String replace=null;
+		if(getStatus()==null&&getUserId()==1)
+		{
+			if(passWord=="" || passWord==null)
+			{
+				errors.add(passWord, new ActionMessage("error.password"));
+			}
+			if(newPassword==null||newPassword=="")
+				errors.add(newPassword,new ActionMessage("error.newpassword.blank"));
+			if(confirmPassword==null||confirmPassword=="")
+				errors.add(confirmPassword,new ActionMessage("error.confirmpassword.blank"));
+			if(newPassword!=null&&confirmPassword!=null&&!newPassword.equals(confirmPassword))
+			{
+				errors.add(newPassword, new ActionMessage("error.password.notmatch"));
+			}
+			
+			if((newPassword!=null&&!newPassword.isEmpty())&&(confirmPassword!=null&&!confirmPassword.isEmpty())&&newPassword.length()<5)
+			{
+				errors.add(newPassword, new ActionMessage("error.password.minsize"));
+				//System.out.println("i am processing............");
+			}
+			if(newPassword!=null&&confirmPassword!=null&&newPassword.length()>12)
+			{
+				errors.add(newPassword, new ActionMessage("error.password.maxsize"));
+			}
+			HttpSession session=request.getSession();
+			String welcome=(String)session.getAttribute("userName");
+			if(welcome!=null)
+			replace=welcome.replaceFirst("Welcome, ", "");
+			request.setAttribute("profilename",replace);
+		}
+		else if(getStatus()==null)
+		{
+			if (mail == "" || mail==null)
+			{
+				errors.add(mail, new ActionMessage("error.mailId"));
+				//System.out.println("9090909090");
+			}				
+			else if(mail!=null)
+			{			
+				Pattern p=Pattern.compile("[a-zA-Z0-9._]*+\\@+([a-zA-Z]{2,12})\\.+([a-zA-Z]{2,4})"); 
+				Matcher m=p.matcher(mail);
+				boolean b=m.matches();
+				if(!b||mail.indexOf(".")+1==mail.indexOf("@") || mail.indexOf("_")+1==mail.indexOf("@"))
+					errors.add(mail, new ActionMessage("error.mailId.invalid"));			               
+			}	
+			if(passWord=="" || passWord==null)
+			{
+				errors.add(passWord, new ActionMessage("error.password"));
+			}
+			else if(passWord!=null)
+			{
+				if(passWord.length()<5 && passWord.length() >0)
+				{
+					errors.add(passWord, new ActionMessage("error.password.minsize"));
+					
+				}
+				if(passWord.length()>12)
+				{
+					errors.add(passWord, new ActionMessage("error.password.maxsize"));
+				}
+			}
+
+		}
+		// validation for Login page Ends //
+		else 
+		{
+
+			//  validation for Admin page
+			if (getMail() == null || getMail() == "")
+				errors.add(mail, new ActionMessage("error.invalid.email"));
+			else {
+
+				if (!getMail().contains("@") || getMail().startsWith(".")
+						|| getMail().startsWith("*")
+						|| getMail().startsWith("#")
+						|| getMail().startsWith("$"))
+					errors.add(mail, new ActionMessage("error.invalid.email"));
+
+				else {
+
+					StringTokenizer tokenizer = new StringTokenizer(getMail(),
+					"@");
+					String emailid = null;
+					String domain = null;
+					while (tokenizer.hasMoreTokens()) {
+						try 
+						{
+							emailid = tokenizer.nextToken();
+							domain = tokenizer.nextToken();
+							if (emailid.length() < 1 || domain.startsWith(".")
+									|| domain.endsWith("."))
+
+								errors.add(mail, new ActionMessage(
+								"error.invalid.email"));
+						} 
+						catch (Exception e) 
+						{
+							// TODO: handle exception
+							errors.add(mail, new ActionMessage("error.invalid.email"));
+						}
+
+					}
+
+				}
+			}
+
+			if (getUserName() == null || getUserName() == "")
+				errors.add("userName",
+						new ActionMessage("error.empty.user"));
+			else 
+			{
+
+				if (getUserName().startsWith(" "))
+
+					errors.add(userName, new ActionMessage(
+					"error.space.user"));
+				else 
+				{
+					String test[] = { "0", "1", "2", "3", "4", "5", "6",
+							"7", "8", "9" };
+					for (int i = 0; i < 10; i++) 
+					{
+						String sequence = test[i];
+						if (userName.startsWith(sequence)) 
+						{
+							errors.add("userName", new ActionMessage(
+							"error.number.user"));
+							break;
+						}
+					}
+				}
+			}
+			if(request.getParameter("roleTest")==null)
+			if(getUser_role()==""||getUser_role()==null){
+				errors.add(user_role, new ActionMessage("error.empty.role"));
+			}						
+		}
+		UserService service = Factory.getUserService();
+		java.util.List<UserForm> list = null;
+		try 
+		{
+			list = service.getUserNames();
+			request.setAttribute("userlist", list);
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+			String errorMessage="Server encountered some problem please try again after some time or contact administrator";
+			request.setAttribute("errorMessage",errorMessage);
+		}
+		return errors;
+	}
+	@Override
+	public int compareTo(UserForm o) {
+		// Compare based on userId
+		return ((Integer)getUserId()).compareTo(o.getUserId());
+	}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + userId;
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		UserForm other = (UserForm) obj;
+		if (userId != other.userId)
+			return false;
+		return true;
+	}
+}
+
+

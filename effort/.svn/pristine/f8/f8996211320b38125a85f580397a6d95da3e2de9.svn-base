@@ -1,0 +1,27 @@
+package com.calsoft.task.service;
+
+import java.util.List;
+
+import com.calsoft.task.form.TaskForm;
+
+public interface SaveTaskService {
+	public String[] saveTask(TaskForm taskForm, int userId)throws Exception;
+
+	//public List getTaskDetails(int userId);
+	public List getTaskDetails(String month, int userId) throws Exception;
+	
+	public boolean doDelete(int taskId)throws Exception;
+
+	public List<TaskForm> editTask(int id)throws Exception;
+
+	public String editsaveTask(TaskForm taskForm, int id, int userId)throws Exception;
+
+	public List<TaskForm> getTaskDetailsUser(String[] allocatedResource, String year, String month)throws Exception;
+
+	public List<String> saveAllTask(List<TaskForm> listForm, int userId)throws Exception;
+
+	public List<TaskForm> getTaskDetailsTeamWise(String[] detailsTeam, String year, String month) throws Exception;
+
+	public String getResourceTeam(int userId)throws Exception;
+
+}

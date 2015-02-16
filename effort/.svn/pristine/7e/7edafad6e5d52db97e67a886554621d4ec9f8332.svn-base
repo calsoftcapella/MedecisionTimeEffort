@@ -1,0 +1,7 @@
+package com.calsoft.task.service;
+
+import com.calsoft.user.model.User;
+
+public interface DeleteTaskService {
+public boolean delete(User user,String date);
+}

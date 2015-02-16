@@ -1,0 +1,384 @@
+package com.calsoft.task.action;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import org.apache.log4j.Logger;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import com.calsoft.factory.Factory;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.task.service.SaveTaskService;
+import com.calsoft.task.service.factory.SaveTaskServiceFactory;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.service.UserService;
+import com.calsoft.util.TimeUtility;
+
+public class TaskAction extends DispatchAction {
+	private static final Logger logger = Logger.getLogger("name");
+	UserService userService = null;
+	static int ID;
+	
+	// Method for saving single entry.
+	public void saveAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {	
+		logger.info("You are inside saveAjax method");
+		HttpSession session = request.getSession();
+		String jsonString = request.getParameter("taskJson");
+		if(session.getAttribute("user_id")!=null)  {
+			int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+			int userIdFormJson = 0;
+			try{
+				TaskForm taskForm = (TaskForm) form;
+				if(jsonString!=null){
+					JSONArray object = JSONArray.fromObject(jsonString);
+					for(int i = 0; i < object.size(); i++){
+						JSONObject jObj = object.getJSONObject(i);	        	 						
+						taskForm.setStatus(jObj.get("status").toString());
+						taskForm.setBacklog_id(jObj.get("backlog_id").toString());
+						taskForm.setTask_id(jObj.get("task_id").toString());
+						taskForm.setTask_description(jObj.get("task_description").toString());
+						taskForm.setTask_date(jObj.get("date").toString());
+						taskForm.setWork_status(jObj.get("work_status").toString());
+						taskForm.setTime(jObj.get("time").toString());
+						userIdFormJson = Integer.parseInt(jObj.get("userId").toString());
+					}		   
+				}
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();	
+				String[] msgArray = new String[2];
+				if(userIdFormJson!=0){
+					msgArray = saveTaskService.saveTask(taskForm, userIdFormJson);	
+				}
+				else{
+					msgArray = saveTaskService.saveTask(taskForm, userId);	
+				}							
+				if(msgArray[0].equalsIgnoreCase("Invalid entry for Time")){				
+					response.getWriter().print("Invalid time Entry");
+				}	
+				else{
+					response.getWriter().print(msgArray[1]);
+				}
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				response.getWriter().print("session expired");
+				/*throw new Exception();*/			
+			}
+		}
+		else
+			response.getWriter().print("session expired");
+			/*throw new Exception();*/
+	}
+	// Method for saving all new entry together.
+	public void saveAllAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {	
+		logger.info("You are inside saveAllAjax method.");
+		HttpSession session = request.getSession();
+		String jsonString = request.getParameter("taskJson");			
+		if(session.getAttribute("user_id")!=null) {
+			int userId = Integer.parseInt(session.getAttribute("user_id").toString());	
+			int userIdFormJson = 0;
+			try{
+				if(jsonString!=null){
+					JSONArray object = JSONArray.fromObject(jsonString); 
+					List<TaskForm> listForm = new ArrayList<TaskForm>();
+					SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+					for(int i = 0; i < object.size(); i++){
+						JSONObject jObj = object.getJSONObject(i);	        	 
+						TaskForm tf = new TaskForm();
+						tf.setStatus(jObj.get("status").toString());
+						tf.setBacklog_id(jObj.get("backlog_id").toString());
+						tf.setTask_id(jObj.get("task_id").toString());
+						tf.setTask_description(jObj.get("task_description").toString());
+						tf.setTask_date(jObj.get("date").toString());
+						tf.setWork_status(jObj.get("work_status").toString());
+						tf.setTime(jObj.get("time").toString());
+						userIdFormJson = Integer.parseInt(jObj.get("userId").toString());
+						listForm.add(tf);
+					}		          
+					if(listForm!=null){
+						List<String> message = null;
+						if(userIdFormJson!=0){
+							message = saveTaskService.saveAllTask(listForm,userIdFormJson);
+						}
+						else{
+							message = saveTaskService.saveAllTask(listForm,userId);
+						}
+						response.getWriter().print(message);
+					}
+				}				
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				response.getWriter().print("session expired");
+				//throw new Exception();			
+			}
+		}
+		else
+			response.getWriter().print("session expired");
+			// throw new Exception();
+		
+	}
+	// Method for getting task detail month wise after month onChange.
+	public ActionForward getDetails(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null){
+			TaskForm taskForm = (TaskForm) form;
+			List<TaskForm> tList = null;
+			String month = taskForm.getMonth();
+			SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+			int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+			Calendar cal = Calendar.getInstance();
+			try {
+				tList = saveTaskService.getTaskDetails(month, userId);
+				request.setAttribute("tList", tList);					
+				DateFormat df = new SimpleDateFormat("yyyy-MM");
+				cal.setTime(df.parse(month));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+				Properties prop = new Properties();	
+				File file = new File(request.getServletContext().getRealPath("getInformation.properties"));				
+				if(file.exists()){
+					try{
+						prop.load(new FileInputStream(file));
+						int userManagerId = Integer.parseInt(prop.getProperty("userInfo_userId"));
+						List<UserForm> listForm = null;
+						if(userManagerId==userId){
+							// Write logic
+							userService = Factory.getUserService();
+							listForm = userService.getAllocatedResourcesBasedOnExitDate(userId, cal);
+							request.setAttribute("selectResourceBasedOnUserId", userManagerId);
+							request.setAttribute("userListSelection", listForm);
+						}
+					}
+					catch(Exception e){
+						e.printStackTrace();
+					}
+				}				
+			} catch(Exception e){
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			// Added for missing entry reminder Table
+			cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+			List<String> allmissingDateList = null;
+			if(Calendar.getInstance().get(Calendar.MONTH) == cal.get(Calendar.MONTH)){
+				// Calculating all working date upto current date
+				allmissingDateList = TimeUtility.getAllWorkingDate(Calendar.getInstance());
+			}
+			else{
+				// Calculating all working date for previous month after setting max date to calendar.
+				allmissingDateList = TimeUtility.getAllWorkingDate(cal);
+			}
+			request.setAttribute("allmissingDateList", allmissingDateList);
+			// Updates ends here.			
+			request.setAttribute("month", month);
+			return mapping.findForward("getDetailSuccess");
+		}
+		else
+			throw new Exception();
+	}
+	// Method for deleting entry.
+	public void delete(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null){
+			try{
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int id = Integer.parseInt(request.getParameter("id"));
+				saveTaskService.doDelete(id);
+			}
+			catch(Exception e){
+				e.printStackTrace();
+				response.getWriter().print("session expired");
+			}
+		}
+		else
+			response.getWriter().print("session expired");
+	}
+	// Method for saving entry after editing.
+	public void saveEditAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("user_id")!=null)   {
+			try{
+				String jsonString = request.getParameter("taskJson");					
+				TaskForm taskForm = (TaskForm) form;	
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				int id = 0;
+				int userIdFormJson = 0;
+				if(jsonString!=null){
+					JSONArray object = JSONArray.fromObject(jsonString); 
+					for(int i = 0; i < object.size(); i++){
+						JSONObject jObj = object.getJSONObject(i);	        	 
+						taskForm.setStatus(jObj.get("status").toString());
+						taskForm.setBacklog_id(jObj.get("backlog_id").toString());
+						taskForm.setTask_id(jObj.get("task_id").toString());
+						taskForm.setTask_description(jObj.get("task_description").toString());
+						taskForm.setTask_date(jObj.get("date").toString());
+						taskForm.setWork_status(jObj.get("work_status").toString());
+						taskForm.setTime(jObj.get("time").toString());
+						taskForm.setId((Integer)jObj.get("id"));
+						userIdFormJson = Integer.parseInt(jObj.get("userId").toString());
+						id = taskForm.getId();
+					}	
+				}
+				String msg = "";
+				if(userIdFormJson!=0){
+					msg = saveTaskService.editsaveTask(taskForm, id, userIdFormJson);
+				}
+				else{
+					msg = saveTaskService.editsaveTask(taskForm, id, userId);
+				}
+				if(msg.equalsIgnoreCase("Invalid entry for Time")){
+					response.getWriter().print("Invalid time Entry");
+				}
+				else if(msg.equalsIgnoreCase("Data edited sucessfully")){
+					response.getWriter().print("Data edited sucessfully");
+				}
+			}
+			catch (Exception e){
+				e.printStackTrace();
+				response.getWriter().print("session expired");
+				//throw new Exception();
+			}
+		}
+		else{
+			response.getWriter().print("session expired");
+		}
+	}
+    // Method for getting time entry page.
+	public ActionForward onClickTask(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {
+		HttpSession s1 = request.getSession();
+		s1.removeAttribute("selectedDate");
+		s1.removeAttribute("conList");
+		s1.removeAttribute("userList");
+		s1.removeAttribute("conListUpdate");
+		if(s1.getAttribute("userName")!=null){
+			try{
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				Calendar cal = Calendar.getInstance();
+				int month = cal.get(Calendar.MONTH) + 1;
+				int year = cal.get(Calendar.YEAR);
+				StringBuffer bf=new StringBuffer();
+				String m=String.valueOf(month);
+				String y=String.valueOf(year);
+				if(month<10){
+					m=bf.append("0").append(m).toString();
+				}
+				StringBuffer bf1=new StringBuffer();
+				String y1=bf1.append(y).append("-").append(m).toString();
+				
+				DateFormat df = new SimpleDateFormat("yyyy-MM");
+				cal.setTime(df.parse(y1));
+				cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH)); 
+				List<TaskForm> tList = null;
+				int userId = Integer.parseInt(s1.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(y1, userId);
+				String locDetail = saveTaskService.getResourceLocation(userId);	
+				
+				Properties prop = new Properties();	
+				File file = new File(request.getServletContext().getRealPath("getInformation.properties"));				
+				if(file.exists()){
+					try{
+						prop.load(new FileInputStream(file));
+						int userManagerId = Integer.parseInt(prop.getProperty("userInfo_userId"));
+						List<UserForm> listForm = null;
+						if(userManagerId==userId){
+							// Write logic
+							userService = Factory.getUserService();
+							listForm = userService.getAllocatedResourcesBasedOnExitDate(userId, cal);
+							request.setAttribute("selectResourceBasedOnUserId", userManagerId);											
+							request.setAttribute("userListSelection", listForm);
+						}
+					}
+					catch(Exception e){
+						e.printStackTrace();
+					}
+				}	
+				// Added for missing entry reminder Table
+				List<String> allmissingDateList = TimeUtility.getAllWorkingDate(Calendar.getInstance());
+				request.setAttribute("allmissingDateList", allmissingDateList);
+				// Updates ends here.
+				request.setAttribute("resourceLocation", locDetail);
+				request.setAttribute("tList", tList);
+			}
+			catch(Exception e){
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("onClickTask");
+		}
+		else
+			throw new Exception();
+	}
+	// Getting time entry details resource wise.
+	public ActionForward getDetailsBasedOnResourceName(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null){
+			TaskForm taskForm = (TaskForm) form;
+			String month = taskForm.getMonth();
+			int selectedUserId = taskForm.getUserId();
+			int userIdFromSession = Integer.parseInt(s1.getAttribute("user_id").toString());
+			List<TaskForm> tList = null;
+			SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+			tList = saveTaskService.getTaskDetails(month, selectedUserId);
+			if(!tList.isEmpty()){
+				request.setAttribute("tList", tList);
+			}
+			Calendar cal = Calendar.getInstance();
+			DateFormat df = new SimpleDateFormat("yyyy-MM");
+			cal.setTime(df.parse(month));
+			cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH));
+			Properties prop = new Properties();	
+			File file = new File(request.getServletContext().getRealPath("getInformation.properties"));				
+			if(file.exists()){
+				try{
+					prop.load(new FileInputStream(file));
+					int userManagerId = Integer.parseInt(prop.getProperty("userInfo_userId"));
+					List<UserForm> listForm = null;
+					if(userManagerId==userIdFromSession){
+						userService = Factory.getUserService();
+						listForm = userService.getAllocatedResourcesBasedOnExitDate(userIdFromSession, cal);
+						request.setAttribute("selectResourceBasedOnUserId", selectedUserId);
+						request.setAttribute("userListSelection", listForm);
+					}
+				}
+				catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			// Added for missing entry reminder Table
+			cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+			List<String> allmissingDateList = null;
+			if(Calendar.getInstance().get(Calendar.MONTH) == cal.get(Calendar.MONTH)){
+					allmissingDateList = TimeUtility.getAllWorkingDate(Calendar.getInstance());
+			}
+			else{
+				allmissingDateList = TimeUtility.getAllWorkingDate(cal);
+			}
+			request.setAttribute("allmissingDateList", allmissingDateList);
+			// Updates ends here.			
+			request.setAttribute("month", month);
+			return mapping.findForward("getDetailSuccess");
+		}
+		else
+			throw new Exception();
+	}
+	// Checking session before providing dynamic row to resources for adding entry.
+	public void checkSessionValidation(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession s1 = request.getSession();
+		logger.info("Printing from checkSessionValidation Method");
+		if(s1.getAttribute("userName")==null){
+			response.getWriter().print("session expired");
+		}
+	}
+}

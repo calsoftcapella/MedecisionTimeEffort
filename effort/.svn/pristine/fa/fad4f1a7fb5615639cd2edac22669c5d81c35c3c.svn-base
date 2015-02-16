@@ -1,0 +1,29 @@
+package com.calsoft.report.service;
+
+import java.util.List;
+
+import com.calsoft.report.form.ReportForm;
+import com.calsoft.report.model.Report;
+import com.calsoft.user.form.UserForm;
+
+public interface ReportService {
+
+	List getReportData(String year, String month, String[] allocatedResource)throws Exception;
+
+	List<List<Report>> getUserReportAllocation(int userId)throws Exception;
+
+	void addResources(String[] allocatedResource, int userId)throws Exception;
+
+	void deleteResources(String[] allocatedResource, int userId)throws Exception;
+
+	List<List<Report>> getUserReportAllocation()throws Exception;
+
+	List<ReportForm> getReportDataTeamWise(String year, String month, String[] detailedTeam) throws Exception;
+
+	List<ReportForm> getExceptionDashboard(String year, String month, List<UserForm> allocatedUserList) throws Exception;
+	
+	/*String saveWeeklyStatus(WeeklyForm form, int userId, String startDate, String endDate, List<Deliverables> deliv, List<Constraints> constr, List<Recruitment_status> recrut )throws Exception;
+
+	WeeklyForm getEditableWeeklyForm(String startDate, String endDate,int userId) throws Exception;
+*/
+}

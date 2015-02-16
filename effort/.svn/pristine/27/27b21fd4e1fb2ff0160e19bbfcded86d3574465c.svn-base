@@ -1,0 +1,26 @@
+#admin details
+userInfo_userId=5027
+adminAccountUsername=Raghavi
+admimEmail=raghavinath.ravindranath@calsoftlabs.com
+adminEmailUsername=raghavinath.ravindranath@calsoftlabs.com
+adminEmailPassword=pass##$$
+
+#Mail server detail
+host_name=linmail.calsoftlabs.com
+port_number=465
+
+#Account Manager details
+account_manager_name=Hem
+account_manager_id=hemachandranb@calsoftlabs.com
+account_manager_userId=5020
+
+#Dev Manager Details
+dev_manager_email=Shesathiri.govindan@calsoftlabs.com
+dev_manager_id=5095
+
+#Holiday details
+holidayListForBangalore=01/01/2014, 01/14/2014, 01/26/2014, 03/31/2014, 04/18/2014, 05/01/2014,  08/15/2014, 08/29/2014, 10/02/2014, 10/03/2014, 10/22/2014, 11/01/2014, 12/25/2014
+holidayListForChennai=01/01/2014, 01/14/2014, 01/26/2014, 04/14/2014, 04/18/2014, 05/01/2014, 08/15/2014, 08/29/2014, 10/02/2014, 10/03/2014, 10/22/2014, 12/25/2014
+
+#All leads info for reminder mail
+all_leads_information_for_reminder=5042, 5028, 5093, 5120, 5015, 5040

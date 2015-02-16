@@ -1,0 +1,13 @@
+package com.calsoft.task.dao;
+
+import java.util.Date;
+
+public class DeleteTaskDaoImpl implements DeleteTaskDao{
+@Override
+public boolean delete(int id, Date date) {
+	// TODO Auto-generated method stub
+	//Session session=HbnUtil.getSession();
+	//String hql="delete from Task where ";
+	return false;
+}
+}

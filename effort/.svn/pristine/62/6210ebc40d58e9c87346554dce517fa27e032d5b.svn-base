@@ -1,0 +1,495 @@
+package com.calsoft.task.action;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.log4j.Logger;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import com.calsoft.factory.Factory;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.task.model.Task;
+import com.calsoft.task.service.SaveTaskService;
+import com.calsoft.task.service.factory.SaveTaskServiceFactory;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.service.UserService;
+
+public class TaskAction extends DispatchAction {
+	private static final Logger logger = Logger.getLogger("name");
+	UserService userService = null;
+	static int ID;
+	Task task = new Task();
+	/*
+	 * 
+	 */
+	public ActionForward save(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception {
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				logger.info("You are inside save method");
+				TaskForm taskForm = (TaskForm) form;
+				List<TaskForm> tList = null;
+				String month = taskForm.getMonth();
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				String[] msgArray = saveTaskService.saveTask(taskForm, userId);	
+				/*if(msg.equalsIgnoreCase("Invalid entry for Time"))
+		        	{
+						ActionErrors errors = new ActionErrors();
+						errors.add("time", new ActionMessage("error.time.requiredMAX23MSG"));
+						saveErrors(request, errors);
+						//return mapping.findForward("editSuccess");
+					}
+				  else
+				{*/
+				request.setAttribute("msg", msgArray[0]);
+				request.setAttribute("displayTaskEntry","displayTaskEntry");
+				/*}*/
+				tList = saveTaskService.getTaskDetails(month, userId);		
+				request.setAttribute("month", month);
+				request.setAttribute("tList", tList);
+
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("saveSuccess");
+		}
+		else
+			throw new Exception();
+
+	}
+	public void saveAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {	
+		logger.info("You are inside saveAjax method");
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)  {
+			try{
+				TaskForm taskForm = (TaskForm) form;
+				String msg=null;
+				String id = null;
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());			
+				String[] msgArray = saveTaskService.saveTask(taskForm, userId);				
+				//System.out.println(msgArray[1]+"msg ");
+				if(msgArray[0].equalsIgnoreCase("Invalid entry for Time")){				
+					response.getWriter().print("Invalid time Entry");
+				}	
+				else{
+					response.getWriter().print(msgArray[1]);
+				}
+			}
+			catch(Exception e){
+				e.printStackTrace();	
+				throw new Exception();			
+			}
+		}
+		else
+			throw new Exception();
+	}
+
+	public void saveAllAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {	
+		logger.info("You are inside saveAllAjax method");
+		HttpSession session = request.getSession();
+		String jsonString = request.getParameter("taskJson");
+		int userId = Integer.parseInt(session.getAttribute("user_id").toString());				
+		if(session.getAttribute("userName")!=null) {
+			try{
+				if(jsonString!=null){
+					JSONArray object = JSONArray.fromObject(jsonString); 
+					List<TaskForm> listForm = new ArrayList<TaskForm>();
+					SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+					for(int i = 0; i < object.size(); i++){
+						JSONObject jObj = object.getJSONObject(i);	        	 
+						TaskForm tf = new TaskForm();
+						tf.setStatus(jObj.get("status").toString());
+						tf.setBacklog_id(jObj.get("backlog_id").toString());
+						tf.setTask_id(jObj.get("task_id").toString());
+						tf.setTask_description(jObj.get("task_description").toString());
+						tf.setTask_date(jObj.get("date").toString());
+						tf.setTime(jObj.get("time").toString());
+						listForm.add(tf);
+					}		          
+					if(listForm!=null){
+						List<String> message =  saveTaskService.saveAllTask(listForm,userId);
+						response.getWriter().print(message);
+					}
+					/*for (TaskForm taskForm : listForm) {								
+							String[] msgArray = saveTaskService.saveTask(taskForm, userId);
+							if(msgArray[0].equalsIgnoreCase("Invalid entry for Time")){				
+								response.getWriter().print("Invalid time Entry");
+							}	
+							else{
+								response.getWriter().print(msgArray[1]);
+							}
+						}*/
+				}				
+			}
+			catch(Exception e){
+				e.printStackTrace();	
+				throw new Exception();			
+			}
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward edit(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				logger.info("You are inside edit method");
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				List<TaskForm> tList = null;
+				TaskForm taskForm = (TaskForm) form;
+				String month = taskForm.getMonth();
+				//System.out.println(" month is edit called" + month);
+				int id = Integer.parseInt(request.getParameter("id"));
+				session.setAttribute("ID", id);
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(month, userId);
+				List<TaskForm> taskFormList = saveTaskService.editTask(id);
+				//System.out.println("edit called" + taskFormList);
+				Iterator<TaskForm> itr1 = taskFormList.iterator();
+				TaskForm taskformValue = null;
+				while (itr1.hasNext()) 
+				{
+					taskformValue = itr1.next();
+				}
+				request.setAttribute("taskList", taskformValue);
+				userService = Factory.getUserService();
+				List<UserForm> userFormList = userService.getUserNames();
+				request.setAttribute("list", userFormList);
+				request.setAttribute("month", month);
+				request.setAttribute("tList", tList);
+				request.setAttribute("id", id);
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("editSuccess");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward getDetails(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			//System.out.println("form bean is            ");
+			TaskForm taskForm = (TaskForm) form;
+			String category = (String)taskForm.getSusi();
+			List<TaskForm> tList = null;
+			String month = taskForm.getMonth();
+			String alert=" You have no timesheet entry for this month ";
+			try {
+
+				// int userId = taskForm.getUserId();
+				// System.out.println("userid is"+userId);
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(month, userId);
+				if(tList.size()==0)
+				{
+					request.setAttribute("alert",alert);
+				}
+				else
+				{
+					request.setAttribute("tList", tList);
+				}
+
+			} catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			if(request.getAttribute("displayTaskEntry")==null&&category==null)
+			{
+				request.setAttribute("displayTaskEntry","displayTaskEntry");
+			}
+
+			request.setAttribute("month", month);
+			return mapping.findForward("getDetailSuccess");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward delete(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception
+	{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				List<TaskForm> tList = null;
+				TaskForm taskForm = (TaskForm) form;
+				String month = taskForm.getMonth();
+				String category = (String)taskForm.getSusi();
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int id = Integer.parseInt(request.getParameter("id"));
+				//System.out.println("this is id= " + id);
+				boolean wIdList = saveTaskService.doDelete(id);
+				//System.out.println("delete wIdList= " + wIdList);
+				SaveTaskService saveTaskService1 = SaveTaskServiceFactory.getSaveTaskService();
+				try 
+				{
+					BeanUtils.copyProperties(task, taskForm);
+				}
+				catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
+				//System.out.println("user id inside delete task method is:"+ taskForm.getUserId());
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(month, userId);
+				if(request.getAttribute("displayTaskEntry")==null&&category==null)
+				{
+					request.setAttribute("displayTaskEntry","displayTaskEntry");
+				}
+				request.setAttribute("month", month);
+				request.setAttribute("tList", tList);
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("deleteSuccess");
+		}
+		else
+			throw new Exception();
+
+	}
+
+
+	public ActionForward delete1(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				List<TaskForm> tList = null;
+				TaskForm taskForm = (TaskForm) form;
+				String month = taskForm.getMonth();
+				String category = taskForm.getStatus();
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int id = Integer.parseInt(request.getParameter("id"));
+				//System.out.println("this is id= " + id);
+				boolean wIdList = saveTaskService.doDelete(id);
+
+				try
+				{
+					BeanUtils.copyProperties(task, taskForm);
+				}
+				catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
+
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(month, userId);
+				if(request.getAttribute("displayTaskEntry")==null&&category==null)
+				{
+					request.setAttribute("displayTaskEntry","displayTaskEntry");
+				}
+				int ss=(Integer)session.getAttribute("ID");
+				List<TaskForm> taskFormList = saveTaskService.editTask(ss);
+				Iterator<TaskForm> itr1 = taskFormList.iterator();
+				TaskForm taskformValue = null;
+				while (itr1.hasNext()) {
+					taskformValue = itr1.next();
+				}
+
+				request.setAttribute("taskList", taskformValue);
+				userService = Factory.getUserService();
+				List<UserForm> userFormList = userService.getUserNames();
+				request.setAttribute("list", userFormList);
+				request.setAttribute("month", month);
+				request.setAttribute("tList", tList);
+				request.setAttribute("id", ss);
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+
+			return mapping.findForward("editSuccess");
+		}
+		else
+			throw new Exception();
+	}
+
+
+	public ActionForward saveEdit(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				TaskForm taskForm = (TaskForm) form;
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int id=Integer.parseInt((String)request.getParameter("userIDValue"));
+				//System.out.println("task id is: "+id);
+				String month = taskForm.getMonth();
+				List<TaskForm> tList = null;
+				//System.out.println("Date inside the saveEdit method is:----------------"+ taskForm.getTask_date());
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				String msg = saveTaskService.editsaveTask(taskForm,id,userId);
+				//System.out.println("idva"+id);
+				tList = saveTaskService.getTaskDetails(month, userId);
+				/*if(msg.equalsIgnoreCase("Invalid entry for Time"))
+			      {
+					ActionErrors errors = new ActionErrors();
+					errors.add("time", new ActionMessage("error.time.requiredMAX23MSG"));
+					saveErrors(request, errors);
+					//return mapping.findForward("editSuccess");
+			      }
+			    else
+			    {*/
+				if(request.getAttribute("displayTaskEntry")==null)
+				{
+					request.setAttribute("displayTaskEntry","displayTaskEntry");
+				}
+				//String msg="Data edited sucessfully";
+				request.setAttribute("msg", msg);
+				/*}*/
+				request.setAttribute("month", month);
+				request.setAttribute("tList", tList);
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return mapping.findForward("saveEditSuccess");
+		}
+		else
+			throw new Exception();
+	}
+	public void saveEditAjax(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)   
+		{
+			try
+			{
+				TaskForm taskForm = (TaskForm) form;
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int id=Integer.parseInt((String)request.getParameter("id"));
+				int userId = Integer.parseInt(session.getAttribute("user_id").toString());
+				String msg = saveTaskService.editsaveTask(taskForm,id,userId);
+
+				if(msg.equalsIgnoreCase("Invalid entry for Time"))
+				{
+					response.getWriter().print("Invalid time Entry");
+				}
+				else if(msg.equalsIgnoreCase("Data edited sucessfully"))
+				{
+					response.getWriter().print("Data edited sucessfully");
+				}
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+				throw new Exception();
+			}
+		}
+	}
+
+	public ActionForward onClickTask(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {
+		HttpSession s1 = request.getSession();
+		s1.removeAttribute("selectedDate");
+		s1.removeAttribute("conList");
+		s1.removeAttribute("userList");
+		s1.removeAttribute("conListUpdate");
+		if(s1.getAttribute("userName")!=null){
+			try{
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				Calendar cal = Calendar.getInstance();
+				int month = cal.get(Calendar.MONTH) + 1;
+				int year = cal.get(Calendar.YEAR);
+				StringBuffer bf=new StringBuffer();
+				String m=String.valueOf(month);
+				String y=String.valueOf(year);
+				if(month<10){
+					m=bf.append("0").append(m).toString();
+				}
+				StringBuffer bf1=new StringBuffer();
+				String y1=bf1.append(y).append("-").append(m).toString();
+				//System.out.println("cc month is "+y1);
+				//TaskForm taskForm = (TaskForm) form;
+				List<TaskForm> tList = null;
+				int userId = Integer.parseInt(s1.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(y1, userId);
+				request.setAttribute("displayTaskEntry","displayTaskEntry");
+				request.setAttribute("tList", tList);
+			}
+
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("onClickTask");
+		}
+		else
+			throw new Exception();
+	}
+
+
+	public ActionForward entry(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)   
+		{
+			List<TaskForm> tList = null;
+			TaskForm taskForm = (TaskForm) form;	 
+			String month = taskForm.getMonth();
+			try 
+			{
+				SaveTaskService saveTaskService = SaveTaskServiceFactory.getSaveTaskService();
+				int userId = Integer.parseInt(s1.getAttribute("user_id").toString());
+				tList = saveTaskService.getTaskDetails(month, userId);
+				System.out.println(month+"MONTHS777");
+				request.setAttribute("openText", "openText"); 
+				//request.setAttribute("displayTaskEntry","displayTaskEntry");
+				request.setAttribute("tList", tList);
+				request.setAttribute("month", month);
+				String cc="ssss";
+				request.setAttribute("newEntry", cc);
+			}
+			catch(Exception e)
+			{
+				e.printStackTrace();	
+				throw new Exception();
+			}
+			return mapping.findForward("onClickTask");
+		}
+		else
+			throw new Exception();
+	}
+
+}

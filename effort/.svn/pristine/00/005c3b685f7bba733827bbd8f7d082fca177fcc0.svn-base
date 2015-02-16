@@ -1,0 +1,823 @@
+<%@page import="java.util.StringTokenizer"%>
+<%@page import="java.util.Calendar"%>
+<%@page import="java.text.DecimalFormat"%>
+<%@page import="java.util.Iterator"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.calsoft.task.form.TaskForm"%>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+	pageEncoding="ISO-8859-1"%>
+<%@taglib uri="http://struts.apache.org/tags-bean" prefix="bean"%>
+<%@taglib uri="http://struts.apache.org/tags-logic" prefix="logic"%>
+<%@taglib uri="http://struts.apache.org/tags-html" prefix="html"%>
+<%@taglib uri="http://displaytag.sf.net" prefix="display"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<style type="text/css">
+body {
+	font: normal 14px Calibri, Calibri, Calibri;
+}
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>CalsoftLabs/Timesheet/Time Entry Page</title>
+
+
+<script type="text/javascript">
+	function onClickLeave(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+<script type="text/javascript">
+	function onDelete(url) {
+		var where_to = confirm("Want to delete the entry??");
+		if (where_to == true) {
+			var submitForm = document.forms[0];
+			submitForm.action = url;
+			submitForm.submit();
+		}
+
+	}
+</script>
+
+<script type="text/javascript">
+function changetextbox()
+{
+	//alert("function changetextbox  is called");	
+	var a=document.getElementById("disable").value ;
+
+    if (a =="Leave")
+    {
+    	
+        document.getElementById("disableBacklog").disabled='true';
+        
+        document.getElementById("disableTask").disabled='true';
+    } 
+    
+
+ else  if (a =="Public holiday")
+    {
+    	
+        document.getElementById("disableBacklog").disabled='true';
+        
+        document.getElementById("disableTask").disabled='true';
+    } 
+    
+ else  if (a =="Half Day")
+ {
+ 	
+     document.getElementById("disableBacklog").disabled='true';
+     
+     document.getElementById("disableTask").disabled='true';
+ } 
+ else  if (a =="Comp off")
+ {
+ 	
+     document.getElementById("disableBacklog").disabled='true';
+     
+     document.getElementById("disableTask").disabled='true';
+ } 
+ else  if (a =="Travel")
+ {
+ 	
+     document.getElementById("disableBacklog").disabled='true';
+     
+     document.getElementById("disableTask").disabled='true';
+ } 
+    
+    else if( document.getElementById("disableBacklog").disabled)
+    	{
+    	
+          	
+            document.getElementById("disableBacklog").disabled=false;
+            
+            document.getElementById("disableTask").disabled=false;
+         	}
+  
+}
+</script>
+
+<script type="text/javascript">
+	function onClickLeave(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+<script type="text/javascript">
+	function onEdit(url) {
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		var selectedUserId = document.getElementById('disable').value;
+		if (selectedUserId == 'Leave'||selectedUserId == 'Public holiday'||selectedUserId =='Half Day'||selectedUserId =='Comp off'||selectedUserId =='Travel') 
+		{
+			var time = document.getElementById('time').value;
+			var date = document.getElementById('popupDatepicker').value;
+			
+			if((time=='')||(date==''))
+				{
+				
+			       if(date=='')
+					{
+					
+				
+				      document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+						+ 'Enter date' + "</font>";
+					}
+			       if(time=='')
+		    	   {
+		      document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+				+ 'Enter time' + "</font>";
+		    	   }
+		       
+		       
+			      
+				}
+			else if(time!='')
+				{
+				
+				var numaric = time;
+				 var x=0;
+				for(var j=0; j<numaric.length; j++)
+					{
+					 
+					  var alphaa = numaric.charAt(j);
+					  var hh = alphaa.charCodeAt(0);
+					  if((hh > 64 && hh<91) || (hh > 96 && hh<123))
+					  {
+						  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+								+ 'Enter  valid time' + "</font>";
+							x=x+1; 
+					  }
+					  
+					  else if((hh==46))
+						  {
+						  
+						  var dec=numaric.split(".");
+						  var cc=dec[1];
+						  
+						  var check=cc.charAt(0);
+						 
+						  if(check>5)
+							  {
+							  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+									+ 'Enter  valid time' + "</font>";
+								x=x+1; 
+							  }
+						  
+						  }
+					  else
+						  {formSubmit.submit();}
+					
+			 		}
+				
+				}				
+			
+			else 
+			{
+				formSubmit.submit();
+			}
+
+		} 
+				
+		 if (selectedUserId != 'Leave'||selectedUserId != 'Public holiday'||selectedUserId!= 'Half Day'||selectedUserId !='Comp off'||selectedUserId !='Travel') 
+		  {
+
+			var time = document.getElementById('time').value;
+			var date = document.getElementById('popupDatepicker').value;
+			var taskId = document.getElementById('disableTask').value;
+			var backlogId = document.getElementById('disableBacklog').value;
+			var timeError='';var dateError='';
+			var timeError1='';
+			var timeError2='';
+			var taskError='';
+			var backLogError='';
+			if((date=='')||(taskId=='')||(backlogId==''))
+				{							
+			    
+			     if(date=='')
+		    	 {
+		    	
+		    	 dateError="<font style='color:red' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter Date' + "</font>";
+		      document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+				+ 'Enter Date' + "</font>";
+		    	 }
+			     
+			     if(time=='')
+		    	 {
+		    	
+		    	 timeError="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter time' + "</font>";
+		      document.getElementById('checkUser').innerHTML = dateError+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+				+ 'Enter time' + "</font>";
+		    	 }
+			     if(time!='')
+					{
+					
+						var numaric = time;
+						 var x=0;
+						for(var j=0; j<numaric.length; j++)
+							{
+							 
+							  var alphaa = numaric.charAt(j);
+							  var hh = alphaa.charCodeAt(0);
+							  if((hh > 64 && hh<91) || (hh > 96 && hh<123))
+							  {
+								  timeError1="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter  valid time' + "</font>";
+								  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+										+ 'Enter  valid time' + "</font>";
+									x=x+1; 
+							  }
+							  
+							  else if((hh==46))
+								  {
+								  
+								  var dec=numaric.split(".");
+								  var cc=dec[1];
+								  
+								  var check=cc.charAt(0);
+								 
+								  if(check>5)
+									  {
+									  timeError2="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter  valid time' + "</font>";
+									  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+											+ 'Enter  valid time' + "</font>";
+										x=x+1; 
+									  }
+								  
+								  }
+							
+					 		}
+											  
+					}
+				      
+				
+				if(taskId=='')
+				{
+					taskError="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"+'Enter taskId' + "</font>";
+					
+			      document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+					+ 'Enter taskId' + "</font>"+dateError+timeError+timeError1+timeError2;
+				}
+				
+				if(backlogId=='')
+				{
+				 backLogError="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"+ 'Enter backlogId' + "</font>";
+			
+			      document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+					+ 'Enter backlogId' + "</font>"+taskError+dateError+timeError+timeError1+timeError2;
+				}
+				
+				
+				}
+			
+			
+			else if((date!='')&&(taskId!='')&&(backlogId!='')&&(time==''))
+				{
+				 
+				 document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+						+ 'Enter time' + "</font>"
+				 
+				}
+
+			else if((date!='')&&(taskId!='')&&(backlogId!='')&&(time!=''))
+				{
+				
+				
+				var numaric = time;
+				 var x=0;
+				for(var j=0; j<numaric.length; j++)
+					{
+					 
+					  var alphaa = numaric.charAt(j);
+					  var hh = alphaa.charCodeAt(0);
+					  if((hh > 64 && hh<91) || (hh > 96 && hh<123))
+					  {
+						  timeError1="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter  valid time' + "</font>";
+						  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+								+ 'Enter  valid time' + "</font>";
+							x=x+1; 
+					  }
+					  
+					  else if((hh==46))
+						  {
+						  
+						  var dec=numaric.split(".");
+						  var cc=dec[1];
+						  
+						  var check=cc.charAt(0);
+						 
+						  if(check>5)
+							  {
+							  timeError2="<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;' >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"	+ 'Enter  valid time' + "</font>";
+							  document.getElementById('checkUser').innerHTML = "<font style='color:red;font-family:verdana,arial,sans-serif;font-size: 11px;'>"
+									+ 'Enter  valid time' + "</font>";
+								x=x+1; 
+							  }
+						  
+						  }
+					
+			 		}
+				
+				if(x==0)formSubmit.submit();
+				
+				}
+			
+			else {
+				formSubmit.submit();
+			     }	
+		} 	
+	}
+	
+</script>
+
+<script type="text/javascript">
+	function onEntry(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+<script type="text/javascript">
+	function onSave(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+<script type="text/javascript">
+	function onGet(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+	function clearForm()
+	{
+	 document.forms[0].task_date.value="";
+	 document.forms[0].backlog_id.value="";
+	 document.forms[0].task_id.value="";
+	 document.forms[0].task_description.value="";
+	 document.forms[0].time.value="";
+	 document.forms[0].id.value=0;
+	
+	}	
+</script>
+<script type="text/javascript">
+	function submitForm(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+<script type="text/javascript">
+function submitReport(url)
+{	
+	var formSubmit=document.forms[0];
+	formSubmit.action=url;
+	formSubmit.submit();	
+	}
+</script>
+<script type="text/javascript">
+	function onReset(url) {
+		var submitForm = document.forms[0];
+		submitForm.action = url;
+		submitForm.submit();
+	}
+</script>
+
+<style type="text/css">
+@import "flora.datepick.css";
+</style>
+<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="jquery.datepick.js"></script>
+<script type="text/javascript">
+$(function() {
+	$('#popupDatepicker').datepick();
+	
+});
+</script>
+<style type="text/css">
+table.hovertable1 {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;	
+	align: center;
+
+}
+table.hovertable {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	border-width: 1px;
+	border-color: #999999;
+	align: center;
+	border-collapse: collapse;
+}
+
+table.hovertable th {
+	background-color: #A5A1A0;
+	border-width: 1px;
+	padding: 0px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+/* table.hovertable tr:nth-child(odd) 
+  { background-color:#eee; }                                                  For differentiating Row Color.  
+
+table.hovertable tr:nth-child(even)    { background-color:#fff; } */
+
+table.hovertable td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+</style>
+ 
+ 
+</head>
+<body style="margin: 17%;margin-top: 0%">
+<div style="margin-left: 40px;">
+	<html:form action="taskAction" method="POST">	
+	
+		<%
+			
+			String y2=null;			
+			ArrayList aa=new ArrayList();ArrayList aa1=new ArrayList();
+			String mm[]=new String[10];
+			String mm1[]=new String[10];
+			 String mmm[]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+		Calendar cal = Calendar.getInstance();
+		int year=cal.get(Calendar.YEAR);int month1=cal.get(Calendar.MONTH) + 1;
+	for(int i=0;i<=9;i++)
+	{
+		
+		if((month1)==0)
+		{
+	     month1 =  (month1)+12;
+	     month1--;
+		}
+		
+		else
+		{
+			month1 =month1-1;
+		}
+	     if(month1==11)
+	     {
+		  year--;;
+	     }
+	    
+	   
+	    StringBuffer bf=new StringBuffer();
+	    String m=String.valueOf(month1+1);
+	    String y=String.valueOf(year);
+	    if(month1+1<10)
+	    {
+	    	m=bf.append("0").append(m).toString();
+	    	
+	    }
+	    StringBuffer bf1=new StringBuffer();
+	    String y1=bf1.append(y).append("-").append(m).toString();
+	    mm[i]=y1;
+	   //System.out.println(y1);
+	    StringBuffer bf2=new StringBuffer();
+	   
+	    y2=bf2.append(mmm[month1]).append("-").append(y).toString();
+	    
+	   
+	  
+	    mm1[i]=y2;
+	}
+	for(int i=0;i<=9;i++)
+	{
+		aa.add(mm[i]);
+		aa1.add(mm1[i]);
+
+	}
+	System.out.println(aa);
+	System.out.println(aa1);
+			
+			%>
+			
+			
+			
+			<%
+				if (request.getAttribute("month") == null) 
+				{
+					
+			%>
+			<table  style="font-family: verdana, arial, sans-serif;font-size: 11px;"><tr><td ><div style="font-family: verdana, arial, sans-serif;font-size: 11px;">Select Month:</div></td><td><html:select property="month" onchange="onGet('taskAction1.do?method=getDetails')" style="font-family: verdana, arial, sans-serif;font-size: 11px;">
+			 <%
+			 String s,sM;
+			
+			 Iterator i=aa.iterator();
+			 Iterator iM=aa1.iterator();
+			 while(i.hasNext()&&iM.hasNext())
+			 {
+				 
+			 s=(String)i.next();
+			 sM=(String)iM.next();
+			 %>
+			  <option  value="<%=s %>" ><%=sM %></option>
+			 <% }%>
+			</html:select>
+
+			</td>
+			 <td> <input type="button"  value="New Entry" onclick="onEntry('taskAction1.do?method=entry')" name="newEntry" style="font-family: verdana, arial, sans-serif;font-size: 11px;"" /></td>
+			</tr></table>
+			
+			<% }%>
+			
+			
+			 <%
+				if (request.getAttribute("month") != null) {
+					
+					
+			%>
+			<table  style="font-family: verdana, arial, sans-serif;font-size: 11px;"><tr><td>Select Month:</td><td> <html:select property="month" onchange="onGet('taskAction1.do?method=getDetails')" style="font-family: verdana, arial, sans-serif;font-size: 11px;" >
+			 <%
+			 
+			 ArrayList<Object> monthList1=new ArrayList<Object>();
+			 ArrayList<Object> monthList2=new ArrayList<Object>();
+			 String s1=(String)request.getAttribute("month");
+
+			 StringTokenizer st = new StringTokenizer(s1, "-"); 
+			 String yy=null;
+			 String m1=null;
+			 while(st.hasMoreTokens()) 
+			 { 
+			 yy = st.nextToken(); 
+			 m1 = st.nextToken(); 
+			 if(m1.charAt(0)!='1'){												
+				 for (int i = 0; i < m1.length(); ++i) {
+					char c = m1.charAt(i);												
+					if (c != '0' && !Character.isSpaceChar(c))
+						m1 = m1.substring(i);
+				 }
+				}
+			 } 
+			 int mon=Integer.parseInt(m1);
+
+			 monthList1.add(s1);
+			 StringBuffer bf3=new StringBuffer();
+
+			 y2=bf3.append(mmm[mon-1]).append("-").append(yy).toString();
+
+			 monthList2.add(y2);
+			 System.out.println(monthList2);
+			 System.out.println(monthList1);
+			 String ss1=(String)monthList2.get(0);
+			 System.out.println(ss1);
+			 String s,s9,ss;
+
+			 Iterator i5=aa.iterator();
+			 Iterator i6=aa1.iterator();
+
+
+			 	 
+			 	 
+
+			 while(i5.hasNext())
+			 {
+			 	 s=(String)i5.next();
+			 	 if(s.equalsIgnoreCase(s1))
+			 	 {
+			 		 
+			 	 }
+			 	 else
+			 	 {
+			 		 monthList1.add(s); 
+			 	 }
+			 }
+
+
+			 while(i6.hasNext())
+			 {
+			 	 ss=(String)i6.next();
+			 	 if(ss.equalsIgnoreCase(ss1))
+			 	 {
+			 		 
+			 	 }
+			 	 else
+			 	 {
+			 		 monthList2.add(ss); 
+			 	 }
+			 }
+
+			 System.out.println(monthList2);
+			 System.out.println(monthList1);
+
+			 Iterator i1=monthList1.iterator();
+			 Iterator i9=monthList2.iterator();
+			 while(i1.hasNext()&&i9.hasNext())
+			 {
+				
+				 
+			 s=(String)i1.next();
+			 s9=(String)i9.next();
+			 %>
+			
+			  <option  value="<%=s %>" ><%=s9 %> </option>
+			 <% }%>
+			</html:select>
+			
+			</td>
+			<td> <input type="button"  value="New Entry" onclick="onEntry('taskAction1.do?method=entry')" name="newEntry" style="font-family: verdana, arial, sans-serif;font-size: 11px;" /></td>
+			        </tr></table>
+			 
+			
+			<% }%>
+			
+			<center>
+			<%
+			String msg=(String)request.getAttribute("msg");
+		    %> 
+			<logic:notEmpty name="msg" scope="request">
+			<div id="short-time-msg">  
+           <%=msg %>
+           <!--  <a href="#" onclick="hideAfterSomeTime(-1)">Hide</a>   -->
+            <script>hideAfterSomeTime()</script>  
+            </div>  
+			</logic:notEmpty>
+			</center>
+			
+		<%
+			TaskForm taskform = (TaskForm) request.getAttribute("taskList");
+				int id = taskform.getId();
+
+				String idValue = new Integer(id).toString();
+		%>
+		<center><table cellpadding="20" style="font-family: verdana, arial, sans-serif;font-size: 11px;" ><tr><td><html:errors property="status"/></td><td><div id="checkUser" align="center" style="margin-left: 160px;"></div></td>
+			<td><div id="checkUser1" align="center"></div></td><td><div id="checkUser2" align="center"></div></td><td><div id="checkUser3" align="center"></div></td></tr></table>
+			</center>
+<table  width="100%"style="font-family: verdana, arial, sans-serif;font-size: 11px;"><tr align="center" valign="middle"><td align="left"><b>Edit Time Entry</b></td></tr>
+</table>
+<br>
+<br>
+       <logic:empty name="displayTaskEntry" scope="request">
+		<table  style="font-family: verdana, arial, sans-serif;font-size: 11px;" cellpadding="5px">
+		<TR><TD><input type="hidden" name="userIDValue" id="userIDValue" value="<%=taskform.getId() %>"> Category:<html:select styleId="disable" value="<%=taskform.getStatus() %>"  property="status" onchange="changetextbox();"  title="This is type of task you are doing" style="font-family: verdana, arial, sans-serif;font-size: 11px;" >
+			                  <option value="<%=taskform.getStatus() %>"><%=taskform.getStatus() %></option>
+							<option value="Development">Development</option>
+							<option value="Maintenance">Maintenance</option>
+							<option value="Testing">Testing</option>
+							<option value="Team Activity">Team Activity</option>
+							<option value="Meeting">Meeting</option>
+							<option value="Training">Training</option>
+							<option value="Project Management">Project Management</option>
+							<option value="Production Support">Production Support</option>
+							<option value="Down Time">Down Time</option>
+							<option value="Leave">Leave</option>
+							<option value="Half Day">Half Day</option>
+							<option value="Public holiday">Public holiday</option>
+							<option value="Comp off">Comp off</option>
+							<option value="Pre-Project Training">Pre-Project Training</option>
+							<option value="Travel">Travel</option>
+						</html:select>&nbsp;&nbsp;&nbsp;   </TD>
+						
+						<!-- 
+						var time = document.getElementById('time').value;
+			var date = document.getElementById('date').value;
+			var taskId = document.getElementById('taskId').value;
+			var backlogId = document.getElementById('backlogId').value; -->
+						
+		<%
+		if(taskform.getStatus().equalsIgnoreCase("leave")||taskform.getStatus().equalsIgnoreCase("Public holiday")||taskform.getStatus().equalsIgnoreCase("Half Day") ||taskform.getStatus().equalsIgnoreCase("Comp off")||taskform.getStatus().equalsIgnoreCase("Travel"))
+		{
+		%>				
+<TD >Backlog ID:<html:text disabled="true" size="6" property="backlog_id" value="<%=taskform.getBacklog_id() %>"  title=" This entry is for theBacklogId of task that you working." styleId="disableBacklog" style="font-family: verdana, arial, sans-serif;font-size: 11px;" ></html:text></TD>						
+<TD>Task ID:<html:text disabled="true" size="6" property="task_id" value="<%=taskform.getTask_id() %>" title=" This entry is for the TaskID of task that you working."  styleId="disableTask" style="font-family: verdana, arial, sans-serif;font-size: 11px;"></html:text></TD>
+<%} %>
+
+				
+		<%
+		if(!(taskform.getStatus().equalsIgnoreCase("leave")||taskform.getStatus().equalsIgnoreCase("Public holiday")||taskform.getStatus().equalsIgnoreCase("Half Day")||taskform.getStatus().equalsIgnoreCase("Comp off") ||taskform.getStatus().equalsIgnoreCase("Travel")))
+		{
+		%>
+		
+					
+<TD>Backlog ID:<html:text  size="6" property="backlog_id" value="<%=taskform.getBacklog_id() %>"  title=" This entry is for theBacklogId of task that you working." styleId="disableBacklog" style="font-family: verdana, arial, sans-serif;font-size: 11px;" ></html:text></TD>						
+<TD>Task ID:<html:text  size="6" property="task_id" value="<%=taskform.getTask_id() %>" title=" This entry is for the TaskID of task that you working."  styleId="disableTask" style="font-family: verdana, arial, sans-serif;font-size: 11px;"></html:text></TD>
+		<%} 
+		
+		String timeFor = taskform.getTime();
+		if(timeFor.length()>7)
+		{
+			timeFor=timeFor.substring(0, timeFor.lastIndexOf(':'));
+		}		
+		%>
+		<TD>Date:<html:text  size="9" property="task_date" value="<%=taskform.getTask_date() %>"  title="The date of task" readonly="true" styleId="popupDatepicker" style="font-family: verdana, arial, sans-serif;font-size: 11px;" ></html:text></TD>
+<TD>Time in hrs:<html:text  size="6"  property="time" value="<%=timeFor%>" styleId="time" title="The duration of task" style="font-family: verdana, arial, sans-serif;font-size: 11px;"></html:text></TD></TR>
+<tr><td></td><td></td><td></td><td></td><td align="right" style="padding-top: 0px;margin-top: 0px;color: #808080;">(eg:HH:MM,HH.MM)</td></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+			<tr></tr>
+	</table>
+<table class="hovertable1"><TR><TD >Description:</td><td><html:textarea rows="5" cols="80" property="task_description" title="A description for this timesheet entry." value="<%=taskform.getTask_description() %>" style="font-family: verdana, arial, sans-serif;font-size: 11px;"/></TD></TR></table>
+<br>
+<table align="center">
+<tr>
+
+<td><input type="button" value="Save" onclick="onEdit('taskAction.do?method=saveEdit')" id="mybutton" height="15px" style="font-family: verdana, arial, sans-serif;font-size: 11px;"/></td>
+<td><input type="button" value="Clear" onclick="return clearForm();" height="15px" style="font-family: verdana, arial, sans-serif;font-size: 11px;"/></td>
+<td><input type="button" value="Back" onClick="location.href='taskAction1.do?method=onClickTask'" height="15px"  style="font-family: verdana, arial, sans-serif;font-size: 11px;"/></td>
+</tr>
+</table>
+</logic:empty>
+<table  style="font:cursor;" width="100%" style="font:cursor;"><tr align="center" valign="middle"><td align="center" >--------------------------------------------------------------------------------------------------------------------------------------------------------------------</td></tr></table>
+<br>
+<br>
+<logic:notEmpty name="tList" scope="request">
+
+			<%
+				if (request.getAttribute("tList") != null) {
+				
+					System.out.print("value is"+request.getAttribute("tList"));
+			%>
+
+			<div
+				style="width: 780px; height: 400px; overflow: scroll; overflow: auto;">
+				<!-- <div style="width: 1250px; height: 400px; overflow: scroll;"> -->
+				<table class="hovertable" border="10" width="760px">
+					<tr>
+
+						<th><h4>Date</h4></th>
+						<th><h4>Category</h4></th>
+						<th style="width:5pc"><h4>BackLog ID</h4></th>
+						<th style="width:0pc"><h4>Task ID</h4></th>
+						<th style="width:13pc"><h4>Description</h4></th>
+						<th style="width:7pc"><h4>Time In hrs</h4></th>
+						<th><h4>Edit</h4></th>
+						<th><h4>Delete</h4></th>
+					</tr>
+
+					<logic:iterate id="tList" name="tList" scope="request"
+						type="com.calsoft.task.form.TaskForm">
+						<tr onmouseover="this.style.backgroundColor='#ffff66';"
+							onmouseout="this.style.backgroundColor='#FFFFFF'">
+							<%-- <bean:define id="recordId">
+							<bean:write name="tList" property="id" />
+						</bean:define>
+						<td><html:radio property="id" value="<%=recordId%>" /></td> --%>
+							<td><bean:write name="tList" property="task_date" /></td>
+							<td><bean:write name="tList" property="status" /></td>
+							<td><bean:write name="tList" property="backlog_id" /></td>
+							<td style="width:3pc"><bean:write name="tList" property="task_id" /></td>
+							<td style="width:13pc"><bean:write name="tList" property="task_description" /></td>
+							<td style="width:7pc">
+							
+							<logic:equal name="tList"  property="status" value="Half Day" >
+							   <font color="#FF0000"><bean:write name="tList" property="time" /></font>
+							</logic:equal>
+							
+							<logic:notEqual name="tList"  property="status" value="Half Day">								
+							        <logic:notEqual name="tList"  property="status" value="Leave" >
+							  			<%--  <bean:write name="tList"  property="time" /> --%>
+							  			<logic:equal name="tList"  property="status" value="Public holiday">
+							  			    <font color="#0000CD"><bean:write name="tList"  property="time" /></font>
+							  			</logic:equal>
+							  			<logic:notEqual name="tList"  property="status" value="Public holiday">
+							  			    <bean:write name="tList"  property="time" />
+							  			</logic:notEqual>							  										  			
+									</logic:notEqual>
+							   		<logic:equal name="tList"  property="status" value="Leave" >
+							      			<font color="#FF0000"><bean:write name="tList"  property="time"  /></font>
+							        </logic:equal>																																							
+						    </logic:notEqual>
+														
+							</td>
+							<td><a
+								onclick="onEdit('taskAction1.do?method=edit&id=<bean:write name="tList" property="id" />')"><img
+									src="edit.png"/></a>
+							<td><a
+								onclick="onDelete('taskAction1.do?method=delete1&id=<bean:write name="tList" property="id" />')"><img
+									src="delete1.png"/></a></td>
+						</tr>
+					</logic:iterate>
+				</table>
+			</div>
+			<%
+				}
+			%>
+		</logic:notEmpty>
+
+		<!-- </div> -->
+	</html:form>
+</div>
+</body>
+</html>

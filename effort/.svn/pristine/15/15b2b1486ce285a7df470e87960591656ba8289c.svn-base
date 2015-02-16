@@ -1,0 +1,726 @@
+package com.calsoft.user.action;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import org.apache.log4j.Logger;
+import org.apache.struts.action.ActionError;
+import org.apache.struts.action.ActionErrors;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import com.calsoft.exeception.DuplicateUser;
+import com.calsoft.factory.Factory;
+import com.calsoft.report.model.Report;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.user.form.AppraisalForm;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.form.UserRoleForm;
+import com.calsoft.user.model.User;
+import com.calsoft.user.service.UserService;
+
+public class UserAction extends DispatchAction implements Job{
+	private static final Logger logger = Logger.getLogger("name");
+	UserService service;
+
+	public ActionForward Login(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+
+		logger.info("You are Inside login method of user action");
+		try
+		{
+			UserForm userForm=(UserForm)form;  
+			String status = null;
+			service = Factory.getUserService();
+			HttpSession s1 = request.getSession();
+			s1.setAttribute("service", service);
+			s1.setMaxInactiveInterval(30*60);   // Setted max-time interval			
+			status = service.matchUser(userForm, request);
+			int user_id = 0;
+			if (s1.getAttribute("user_id") != null) 
+			{
+				user_id = (Integer) s1.getAttribute("user_id");
+			}
+			if (status != null && status.equalsIgnoreCase("InActive")) 
+			{
+				ActionErrors errors = new ActionErrors();
+				errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("error.login.status"));
+				saveErrors(request, errors);
+				return mapping.findForward("loginFail");
+			}
+
+			else if (status != null && status.equalsIgnoreCase("admin")|| status != null && status.equalsIgnoreCase("administrator")) 
+			{
+				return mapping.findForward("successForAdmin");
+			} 
+			else if ((status != null && !status.equalsIgnoreCase("admin"))&&(status != null && !status.equalsIgnoreCase("errorOnAddUser"))||( status != null && !status.equalsIgnoreCase("administrator"))&&(status != null && !status.equalsIgnoreCase("errorOnAddUser"))) 
+			{
+
+				if(status.equalsIgnoreCase("manager")||status.equalsIgnoreCase("client") || status.equalsIgnoreCase("acc_Manager")){
+					s1.setAttribute("manageUser", "manageUser");
+					//s1.setAttribute("setUserRole", status);
+				}						
+				List<TaskForm> userFormList = service.getUserTask(user_id);
+				if (userFormList != null && userFormList.size() > 0) 
+				{
+					String date = userFormList.get(0).getTask_date();
+					int MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
+					DateFormat format = new SimpleDateFormat("MM/dd/yyyy");
+					String nextDate = format.format(format.parse(date).getTime()+ MILLIS_IN_DAY);
+					if (nextDate.equals(format.format(new Date()))) 
+					{
+						request.setAttribute("errorSheet", " " + nextDate+ " : Enter your timesheet today.");
+					}
+				}
+
+				//Get objective for User			
+				List<AppraisalForm> obj =  service.getObjective(user_id);
+				if(obj!=null && !obj.isEmpty()){
+					request.setAttribute("userObjective", obj);
+				}
+				ArrayList<String> str1 = service.getTaskMessage();
+				request.setAttribute("lessTask", str1);
+				request.setAttribute("userlist", userFormList);
+				return mapping.findForward("successForEmp");
+			}
+			else if (status != null && status.equalsIgnoreCase("errorOnAddUser")) 
+			{
+				ActionErrors errors = new ActionErrors();
+				errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("error.while.addingUser"));
+				saveErrors(request, errors);
+				return mapping.findForward("loginFail");
+			}
+			ActionErrors errors = new ActionErrors();
+			errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("error.login"));
+			saveErrors(request, errors);
+		}
+		catch (Exception e) 
+		{
+			logger.error(e);
+			throw new Exception();
+		}
+		return mapping.findForward("loginFail");
+
+	}
+
+	public  ActionForward GenerateNewPassword(ActionMapping mapping,ActionForm form, HttpServletRequest request,HttpServletResponse response) throws Exception
+	{
+		logger.info("You are Inside GenerateNewPassword method of user action");
+		//System.out.println("GenerateNewPassword");
+		try
+		{
+			UserForm userForm=(UserForm)form;    
+			String status = null;
+			service=Factory.getUserService();
+			status = service.getPassword(userForm);
+			//System.out.println("C@*@*@*@*@*@*");
+			ActionErrors errors = new ActionErrors();
+			if(status == null)
+			{
+				errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("email.error")); 
+				saveErrors(request, errors);
+			}		
+			else if(status!=null && status.equalsIgnoreCase("Active"))
+			{
+				errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("email.send"));
+				saveErrors(request, errors);
+			}
+			else if(status!=null && status.equalsIgnoreCase("InActive"))
+			{
+				errors.add(ActionErrors.GLOBAL_MESSAGE, new ActionError("error.login.status"));
+				saveErrors(request, errors);
+			}
+		} 
+		catch (Exception e) 
+		{
+			logger.error(e);
+			throw new Exception();
+		}
+		return mapping.findForward("generatePassword");
+
+	}
+
+	public ActionForward userManage(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+
+			logger.info("userManage information...........");
+			// TODO Auto-generated method stub
+			try {
+				service = Factory.getUserService();
+				List<UserForm> list = service.getUserNames();				
+				List<UserRoleForm> allRoles = service.getAllRole();				
+				request.setAttribute("userlist", list);	
+				s1.setAttribute("allRoleName", allRoles);	
+				UserForm userForm=(UserForm)form;
+				userForm.setMail(null);
+			} catch (Exception e) {
+				// TODO: handle exception
+				logger.error(e);
+				throw new Exception();
+			}
+
+			// System.out.println(list);
+			return mapping.findForward("userManageSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+
+		}
+
+	}
+
+	public ActionForward addUser(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+			String message = null;
+			UserForm userForm = (UserForm)form;
+			logger.info("adduser information...........");
+			boolean flag = false;
+			try {
+				service = Factory.getUserService();
+				message = service.addUser(userForm);
+				flag = true;
+				/*if (message.equals("User added successfully passWord has been sent to user email.")||message.equals("User activated successfully passWord has been sent to user email")) {
+					request.setAttribute("passwordMessage", message);
+				}*/
+				if (message.equals("User added successfully")||message.equals("User activated successfully")) {
+					request.setAttribute("passwordMessage", message);
+				}
+				else
+				{
+					message="User details updated successfully";
+					request.setAttribute("passwordMessage", message);
+				}
+				//service = Factory.getUserService();
+				List<UserForm> list = service.getUserNames();
+				request.setAttribute("userlist", list);
+			} 
+			catch (DuplicateUser e)
+			{
+				// TODO: handle exception
+				throw new DuplicateUser();
+			}
+
+			catch (Exception e) {
+				// TODO: handle exception
+				logger.error(e);
+				e.printStackTrace();
+				throw new Exception();
+			}
+
+			if (flag)
+				return mapping.findForward("success");
+			else
+				return mapping.findForward("fail");
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward signOut(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession session = request.getSession();
+		session.removeAttribute("selectedDate");
+		String signOutMessage = "You Are Successfully Logged Out";
+		request.setAttribute("signoutMessage", signOutMessage);
+		session.invalidate();
+		/*response.setHeader("Pragma", "no-cache");
+		response.setHeader("Cache-Control", "no-cache");
+		response.setDateHeader("Expires", 0);*/
+		return mapping.findForward("signout");
+	}
+
+	public ActionForward delete(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)
+		{
+			logger.info("delete user  information...........");
+			int uid =0;
+			UserForm userForm = (UserForm) form;
+			try {
+				uid = Integer.parseInt(request.getParameter("id"));
+
+				userForm.setUserId(uid);
+				service = Factory.getUserService();
+				if (service.delete(userForm)) {
+					service = Factory.getUserService();
+					List<UserForm> list = service.getUserNames();
+					request.setAttribute("userlist", list);
+					return mapping.findForward("deleted");
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward(null);
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward edit(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		// System.out.println("edit...");
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)
+		{
+
+			logger.info("edit user  information...........");
+			int uid =0;
+			UserForm userForm = (UserForm) form;
+			try {
+				uid = Integer.parseInt(request.getParameter("id"));
+				service = Factory.getUserService();
+				User user = service.getUserDetail(uid);
+				userForm.setUserName(user.getUser_name());
+				userForm.setMail(user.getMail());
+				userForm.setStatus(user.getStatus());
+				userForm.setUserId(user.getUser_Id());
+				userForm.setPassWord(user.getPassWord());
+				List<UserForm> list = service.getUserNames();
+				request.setAttribute("userlist", list);
+			} catch (Exception e) {
+				// TODO: handle exception
+				logger.error(e);
+				throw new Exception();
+			}
+
+			return mapping.findForward("editable");
+		}
+		else
+			throw new Exception();
+	}
+
+	public synchronized ActionForward getHomeContent(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception {
+		logger.info("You are Inside getHomeContent method of user action");
+		int user_id = 0;
+		HttpSession s1 = request.getSession();
+		try
+		{
+			if (s1.getAttribute("user_id") != null){
+				user_id = (Integer) s1.getAttribute("user_id");
+				s1.removeAttribute("selectedDate");
+				s1.removeAttribute("conList");
+				s1.removeAttribute("userList");
+				s1.removeAttribute("conListUpdate");
+			}
+			service = Factory.getUserService();
+			if(service!=null && s1.getAttribute("userName")!=null)
+			{
+				List<TaskForm> userFormList = service.getUserTask(user_id);
+				if (userFormList != null && userFormList.size() > 0)
+				{
+					String date = userFormList.get(0).getTask_date();
+					int MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
+					DateFormat format = new SimpleDateFormat("MM/dd/yyyy");
+					String nextDate = format.format(format.parse(date).getTime()+ MILLIS_IN_DAY);
+					if (nextDate.equals(format.format(new Date()))) {
+						request.setAttribute("errorSheet", " " + nextDate+ " : Enter your timesheet today.");
+					}
+				}
+				//Get objective for User			
+				List<AppraisalForm> obj =  service.getObjective(user_id);
+				if(obj!=null && !obj.isEmpty()){
+					request.setAttribute("userObjective", obj);
+				}
+				ArrayList<String> str1 = service.getTaskMessage();
+				request.setAttribute("lessTask", str1);
+				request.setAttribute("userlist", userFormList);
+			} 
+			else
+			{
+				throw new Exception();
+			}
+		}
+		catch (Exception e) 
+		{
+			logger.error(e);
+			throw new Exception();
+		}
+		return mapping.findForward("successForEmp");
+	}
+	public ActionForward goChangePassword(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession s1=request.getSession();
+		if(s1.getAttribute("userName")!=null)     // Changed getAttribute("service")
+		{
+			s1.removeAttribute("selectedDate");
+			s1.removeAttribute("conList");
+			s1.removeAttribute("userList");
+			s1.removeAttribute("conListUpdate");
+			String welcome=(String)s1.getAttribute("userName");
+			String replace=welcome.replaceFirst("Welcome, ", "");
+			request.setAttribute("profilename",replace);
+			return mapping.findForward("gochange");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward changePassword(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession session=request.getSession();
+		if(session.getAttribute("userName")!=null) // Changed getAttribute("service")
+		{
+			String welcome=(String)session.getAttribute("userName");
+			String replace=welcome.replaceFirst("Welcome, ", "");
+			request.setAttribute("profilename",replace);
+			return mapping.findForward("change");
+		}
+		else
+			throw new Exception();
+	}
+	public ActionForward passwordChanged(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession session1=request.getSession();
+		if(session1.getAttribute("userName")!=null)
+		{			
+			String welcome=(String)session1.getAttribute("userName");
+			String replace=welcome.replaceFirst("Welcome, ", "");
+			request.setAttribute("profilename",replace);
+			UserForm userForm = (UserForm) form;
+			boolean b=false;
+			int userId=0;
+			try {
+				service = Factory.getUserService();
+				userId=Integer.parseInt(session1.getAttribute("user_id").toString());
+				userForm.setUserId(userId);
+				b=service.changePassword(userForm);
+
+			} catch (Exception e) {
+				// TODO: handle exception
+				throw new Exception();
+			}
+			if(b)
+			{
+				String msg="Your password changed successfully";
+				request.setAttribute("passwordmsg",msg);
+				return mapping.findForward("passwordchanged");
+			}
+
+			else
+			{
+				String msg="Password change failed";
+				request.setAttribute("passwordmsg1",msg);
+				return mapping.findForward("changfail");
+			}
+		}
+		else
+			throw new Exception();
+
+	}
+	public ActionForward getUserAccessMapping(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// TODO Auto-generated method stub
+		HttpSession s1=request.getSession();
+		if(s1.getAttribute("userName")!=null)  // Changed getAttribute("service")
+		{
+			try {
+				String welcome=(String)s1.getAttribute("userName");
+				String replace=welcome.replaceFirst("Welcome, ", "");
+				request.setAttribute("profilename",replace);
+				int userId=0;
+				userId=Integer.parseInt(s1.getAttribute("user_id").toString());
+				service = Factory.getUserService();
+				List<List<Report>> combinedList =service.getUserReportAllocation(userId);
+				Iterator<List<Report>> itr = combinedList.iterator();
+				int count = 1;
+				List<Report> unallocatedList = null;
+				List<Report> allocatedList = null;
+				while (itr.hasNext()) {
+					if (count == 1) {
+						allocatedList = itr.next();
+					}
+					if (count == 2) {
+						unallocatedList = itr.next();
+					}
+					count++;
+				}
+				//System.out.println("Allocated list size=" + allocatedList);
+				//System.out.println("unAllocated list size=" + unallocatedList);
+				UserService userService;
+				userService = Factory.getUserService();
+				UserForm userForm = userService.getUsernameFromId(userId);
+				String userName = userForm.getUserName();
+				UserForm userformNew = new UserForm();
+				userformNew.setUserId(userId);
+				userformNew.setUserName(userName);
+				List<UserForm> userFormList = userService.getUserNames();
+				Iterator<UserForm> itr1 = userFormList.iterator();
+				List<UserForm> userFormUpdatedList = new ArrayList<UserForm>();
+				userFormUpdatedList.add(userformNew);
+				while (itr1.hasNext()) {
+					UserForm userFormValue = itr1.next();
+					if (!(userFormValue.getUserName().equals(userName))) {
+						userFormUpdatedList.add(userFormValue);
+					}
+				}
+				// get the list of users with the list of resources
+				Iterator<Report> allocatedIterator = allocatedList.iterator();
+				int counter = 1;
+				List<Report> updatedAllocatedList = new ArrayList<Report>();
+				while (allocatedIterator.hasNext()) {
+					Report report = allocatedIterator.next();
+					if (counter == 1) {
+						report.setParentUserName(userName);
+						//System.out.println("parent user name is:"+ report.getParentUserName());
+					}
+					updatedAllocatedList.add(report);
+					counter++;
+				}
+				request.setAttribute("list", userFormUpdatedList);
+				request.setAttribute("combinedList", combinedList);
+				request.setAttribute("allocatedList", allocatedList);
+				request.setAttribute("updatedallocatedList", updatedAllocatedList);
+				request.setAttribute("unallocatedList", unallocatedList);
+			} 
+			catch (Exception e) {
+				e.printStackTrace();
+				throw new Exception();
+			}
+			return mapping.findForward("getUserAccessMapping");
+		}
+		else
+			throw new Exception();
+	}
+
+
+	public ActionForward editGlobal(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession s1=request.getSession();
+		if(s1.getAttribute("userName")!=null)   // Changed getAttribute("service")
+		{
+			logger.info("GlobalEdit user  information...........");
+			int uid =0;
+			UserForm userForm = (UserForm) form;
+			try {
+				uid = Integer.parseInt(request.getParameter("id"));
+				//System.out.println("editGlobal Method");
+				userForm.setUserId(uid);
+				service = Factory.getUserService();
+				if (service!=null && service.deleteGlobal(userForm))
+				{
+					List<UserForm> list = service.getUserNames();
+					request.setAttribute("userlist", list);
+					return mapping.findForward("deleted");
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward(null);
+		}
+		else
+			throw new Exception();
+	}
+
+	public ActionForward getAdminHome(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession s1=request.getSession();
+		if(s1.getAttribute("userName")!=null)   
+		{
+			return mapping.findForward("successForAdmin");
+		}
+		else
+			throw new Exception();
+	}
+
+	// Cron Job Scheduler
+	public void execute(JobExecutionContext context)throws JobExecutionException
+	{
+		service = Factory.getUserService();
+		try
+		{
+			List<UserForm> allUser = service.getUserNames();
+			service.sendEmailToAll(allUser);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}	
+	}
+/*
+ * @author Uday 
+ */
+	public ActionForward getUserDetails(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+			try {
+				service = Factory.getUserService();
+				List<UserForm> list = service.getUserNames();	
+				List<UserForm> statuslist = service.getStatusListForUserDetailsPage();
+				List<UserForm> managerList = service.getManagerListForUserDetailsPage();
+				List<UserForm> teamList = service.getTeamListForUserDetailsPage();
+				List<UserRoleForm> allRoles = service.getAllRole();				
+				request.setAttribute("userlist", list);	
+				request.setAttribute("statusList", statuslist);	
+				request.setAttribute("managerList", managerList);
+				request.setAttribute("teamList", teamList);	
+				s1.setAttribute("allRoleName", allRoles);	
+				UserForm userForm=(UserForm)form;
+				userForm.setMail(null);
+			} catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+
+		}
+
+	}
+
+	/*
+	 * @author Uday 
+	 */
+
+	public ActionForward getSelectedStatusUserList(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+			String status=request.getParameter("status");
+			try {
+				service = Factory.getUserService();
+				List<UserForm> selectedStatusList = service.getSelectedStatusUsers(status);
+
+
+				List<UserForm> statuslist = service.getStatusListForUserDetailsPage();
+				List<UserForm> managerList = service.getManagerListForUserDetailsPage();
+				List<UserForm> teamList = service.getTeamListForUserDetailsPage();
+				List<UserRoleForm> allRoles = service.getAllRole();				
+				request.setAttribute("userlist", selectedStatusList);	
+				request.setAttribute("statusList", statuslist);	
+				request.setAttribute("managerList", managerList);
+				request.setAttribute("teamList", teamList);	
+				s1.setAttribute("allRoleName", allRoles);	
+				UserForm userForm=(UserForm)form;
+				userForm.setMail(null);
+			} catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+
+
+			return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+
+		}
+
+	}
+	/*
+	 * @author Uday 
+	 */
+
+	public ActionForward getSelectedManagerUserList(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+			/*			String ParameterNames = "";
+			for(Enumeration e = s1.getAttributeNames();
+			e.hasMoreElements(); ){
+				ParameterNames = (String)e.nextElement();
+				}
+			 */			String manager=request.getParameter("teamManager");
+			 try {
+				 service = Factory.getUserService();
+				 List<UserForm> selectedManagerList = service.getSelectedManagerUsers(manager);	
+				 List<UserForm> statuslist = service.getStatusListForUserDetailsPage();
+				 List<UserForm> managerList = service.getManagerListForUserDetailsPage();
+				 List<UserForm> teamList = service.getTeamListForUserDetailsPage();
+				 //	List<UserRoleForm> allRoles = service.getAllRole();				
+				 request.setAttribute("userlist", selectedManagerList);	
+				 request.setAttribute("statusList", statuslist);	
+				 request.setAttribute("managerList", managerList);
+				 request.setAttribute("teamList", teamList);	
+				 //s1.setAttribute("allRoleName", allRoles);	
+				 UserForm userForm=(UserForm)form;
+				 userForm.setMail(null);
+			 } catch (Exception e) {
+				 logger.error(e);
+				 throw new Exception();
+			 }
+			 return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+		}
+	}
+	/*
+	 * @author Uday 
+	 */
+
+	public ActionForward getSelectedTeamUserList(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response)throws Exception 
+	{
+		HttpSession s1 = request.getSession();
+		if(s1.getAttribute("userName")!=null)
+		{
+			String team=request.getParameter("teamName");
+			try {
+				service = Factory.getUserService();
+				List<UserForm> selectedTeamList = service.getSelectedTeamUsers(team);	 
+				List<UserForm> statuslist = service.getStatusListForUserDetailsPage();
+				List<UserForm> managerList = service.getManagerListForUserDetailsPage();
+				List<UserForm> teamList = service.getTeamListForUserDetailsPage();
+				List<UserRoleForm> allRoles = service.getAllRole();				
+				request.setAttribute("userlist", selectedTeamList);	
+				request.setAttribute("statusList", statuslist);	
+				request.setAttribute("managerList", managerList);
+				request.setAttribute("teamList", teamList);	
+				s1.setAttribute("allRoleName", allRoles);	
+				UserForm userForm=(UserForm)form;
+				userForm.setMail(null);
+			} catch (Exception e) {
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+		}
+	}
+
+}

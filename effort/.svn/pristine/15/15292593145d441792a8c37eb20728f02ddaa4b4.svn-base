@@ -1,0 +1,30 @@
+package com.calsoft.user.model.test;
+
+import junit.framework.TestCase;
+
+import com.calsoft.user.model.User;
+
+public class TestUser extends TestCase
+{
+	private User us;
+	public void testFirst()
+	{
+
+		int acc_id = 1900;
+		String acc_name = "Rohan";
+		us = new User(acc_id, acc_name); 
+		int exp_id = us.getUser_Id();
+		String exp_name = us.getUser_name();
+		us.setUser_Id(000);
+		assertEquals(exp_id, acc_id);
+		assertEquals(exp_name, acc_name);
+	
+        us.setUser_Id(1001);
+        us.setUser_name("Ram");
+        int exp_id1 = us.getUser_Id();
+        String exp_na = us.getUser_name();
+        assertEquals(exp_id1, 1001);
+        assertEquals(exp_na, "Ram");
+       
+	}
+}

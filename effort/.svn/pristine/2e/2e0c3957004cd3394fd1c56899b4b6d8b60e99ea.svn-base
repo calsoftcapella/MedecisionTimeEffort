@@ -1,0 +1,22 @@
+package com.calsoft.task.service;
+import com.calsoft.user.model.User;
+
+public class DeleteTaskServiceImpl implements DeleteTaskService{
+@Override
+public boolean delete(User user, String date) {
+	boolean status=false;
+	//DeleteTaskDao dao=SaveTaskDaoFactory.getDeleteTaskDao();
+	// TODO Auto-generated method stub
+	/*DateFormat format=null;
+	Date date2=null;
+	format=new SimpleDateFormat("dd-MMM-yy");
+	try {
+		date2=(Date)format.parse(date);
+	} catch (Exception e) {
+		// TODO: handle exception
+		System.out.println("exception is  "+e);
+	}*/
+	//status=dao.delete(user.getUser_Id(),date2);
+	return status;
+}
+}

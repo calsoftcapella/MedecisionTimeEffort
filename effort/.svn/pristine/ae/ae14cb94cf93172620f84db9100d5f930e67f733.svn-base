@@ -1,0 +1,270 @@
+package com.calsoft.performance.action;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+
+import com.calsoft.factory.Factory;
+import com.calsoft.performance.form.PerformanceLogForm;
+import com.calsoft.performance.form.UserCommentForm;
+import com.calsoft.performance.service.PerformanceLogService;
+import com.calsoft.performance.servicefactory.PerformanceServiceFactory;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.service.UserService;
+import com.calsoft.util.TimeUtility;
+
+public class PerformanceAction extends DispatchAction implements Job{
+	private static final Logger logger = Logger.getLogger("PerformanceAction");
+	private static String glassfishInstanceRootPropertyName = "com.sun.aas.instanceRoot";
+	private static String glassfishDomainConfigurationFolderNameFromPerformance = "/applications/effort";
+	//private static String glassfishDomainConfigurationFolderNameFromPerformance = "/eclipseApps/effort";
+	PerformanceLogService service;
+	UserService userService;
+
+	public ActionForward giveComment(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession session = request.getSession();
+		PerformanceLogForm performanceLogForm=(PerformanceLogForm)form;
+		if(session.getAttribute("user_id")!=null){
+			service = PerformanceServiceFactory.getPerformanceService();
+			int userId = (Integer) session.getAttribute("user_id");
+			boolean status = false;
+			status =service.saveUserComment(performanceLogForm, userId, performanceLogForm.getId());			
+			int selectedResourceId = performanceLogForm.getUserId();			
+			UserService userService = Factory.getUserService();
+			if(selectedResourceId!=0){
+				UserForm user_form = userService.getUsernameFromId(selectedResourceId);
+				performanceLogForm.setUserName(user_form.getUserName());
+				performanceLogForm.setEmail(user_form.getMail());
+				request.setAttribute("forDisplay", performanceLogForm);
+			}
+			String meassage = null;
+			if(status==true && selectedResourceId!=0){
+				logger.info("comment inserted successfully");
+				meassage = "Comment given to this objectives successfully.";
+				if(userId!=selectedResourceId){
+					String[] roles = performanceLogForm.getRoleNames();
+					List<String> accessList = new ArrayList<String>();
+					for (String names : roles) {
+						accessList.add(names);
+					}
+					String selectdResourceForComment = performanceLogForm.getUserName();
+					Properties prop = new Properties();					 
+					prop.load(new FileInputStream(request.getServletContext().getRealPath("getInformation.properties")));	
+					if(!accessList.isEmpty() && accessList.contains(selectdResourceForComment)){
+						// Sending email notification to resource.
+						meassage = service.sendEmailNotification(performanceLogForm, prop);
+						request.setAttribute("emailStatus", meassage);
+					}
+				}
+				request.setAttribute("commentStatus", meassage);
+			}
+			else{
+				logger.info("comment not inserted successfully");
+				meassage = "Failed to save comment for this objective.";
+				request.setAttribute("commentFail", meassage);
+			}
+			PerformanceLogForm userPerformance = service.getPerformance(selectedResourceId,performanceLogForm.getPeriod());			
+			List<UserCommentForm> commentList = service.getComments(userPerformance.getId(),userId);
+			int selectedUserId=performanceLogForm.getUserId();
+			List<UserForm> usersList = service.getUsersListForPerformanceLogPageSelectedUserOnTop(userId,selectedUserId);
+			List<UserCommentForm> listObj= service.getRoleNames(userId,performanceLogForm.getUserId());
+			String accountManager=service.accountManager(performanceLogForm, userId,  performanceLogForm.getId());
+			request.setAttribute("accountManager", accountManager);
+			request.setAttribute("listObj", listObj);
+			request.setAttribute("updatedUsersList", usersList);
+			request.setAttribute("commentList", commentList);
+			request.setAttribute("userPerformance", userPerformance);
+		}
+		return mapping.findForward("getUserDetailsSuccess");
+	}
+	public ActionForward performanceLogPage(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)
+		{
+			int userId =(Integer) session.getAttribute("user_id");
+			logger.info("Performance log page ");
+			try {
+				service = PerformanceServiceFactory.getPerformanceService();
+				PerformanceLogForm performanceLogForm=(PerformanceLogForm)form;
+				PerformanceLogForm userPerformance = service.getPerformance(performanceLogForm.getUserId(),performanceLogForm.getPeriod());
+				int selectedUserId=performanceLogForm.getUserId();
+				List<UserCommentForm> commentList = service.getComments(userPerformance.getId(),userId);
+				List<UserForm> usersList = service.getUsersListForPerformanceLogPageSelectedUserOnTop(userId,selectedUserId);
+				List<UserCommentForm> listObj= service.getRoleNames(userId,performanceLogForm.getUserId());
+				String accountManager=service.accountManager(performanceLogForm, userId,  performanceLogForm.getId());
+				UserService userService = Factory.getUserService();
+				if(performanceLogForm.getUserId()!=0){
+					UserForm user_form = userService.getUsernameFromId(performanceLogForm.getUserId());
+					performanceLogForm.setUserName(user_form.getUserName());				
+					request.setAttribute("forDisplay", performanceLogForm);
+				}
+				request.setAttribute("accountManager", accountManager);
+				request.setAttribute("listObj", listObj);
+				request.setAttribute("updatedUsersList", usersList);
+				request.setAttribute("commentList", commentList);
+				request.setAttribute("userPerformance", userPerformance);
+
+			}
+			catch (Exception e) {
+				logger.error(e);
+			}
+			return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+		}
+
+	}
+
+	public ActionForward getSelectedperiodList(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception{
+		HttpSession session = request.getSession();
+		session.removeAttribute("selectedDate");
+		session.removeAttribute("conList");
+		session.removeAttribute("userList");
+		session.removeAttribute("conListUpdate");
+		if(session.getAttribute("userName")!=null)
+		{
+			int userId =(Integer) session.getAttribute("user_id");
+			logger.info("Performance log page ");
+			try {
+				service = PerformanceServiceFactory.getPerformanceService();
+				PerformanceLogForm userPerformance =new PerformanceLogForm();
+				userPerformance.setCommonObjective("Select period and user  to  get Common Objective. ");
+				userPerformance.setSpecificObjective("Select period and user to get Specific Objective. ");
+				List<UserForm> usersList = service.getUsersListForPerformanceLogPage(userId);
+				request.setAttribute("usersList", usersList);
+				request.setAttribute("userPerformance", userPerformance);
+			}
+			catch (Exception e) {
+				logger.error(e);
+			}
+			return mapping.findForward("getUserDetailsSuccess");
+		}
+		else 
+		{
+			throw new Exception();
+		}
+	}
+
+	public void deleteComment(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		logger.info("from deleteComment method ");
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)
+		{
+			String commentid= request.getParameter("commentId");
+			try {
+				service = PerformanceServiceFactory.getPerformanceService();
+				boolean status = service.deleteUserComment(Integer.parseInt(commentid));
+				if(status)
+				{
+					logger.info("comment deleted ");
+				}
+				else
+				{
+					logger.info("comment not deleted ");
+				}
+			}
+			catch (Exception e) {
+				logger.error(e);
+			}
+		}
+		else 
+		{
+			throw new Exception();
+		}
+	}
+
+	public void editComment(ActionMapping mapping, ActionForm form,HttpServletRequest request, HttpServletResponse response)throws Exception
+	{
+		HttpSession session = request.getSession();
+		if(session.getAttribute("userName")!=null)
+		{
+			String commentid= request.getParameter("commentId");
+			String comment= request.getParameter("user_Comment");
+			try {
+				boolean status = service.editUserComment(Integer.parseInt(commentid),comment);
+				if(status)
+				{
+					logger.info("comment edited successfully ");
+				}
+				else
+				{
+					logger.info("comment not  edited successfully ");
+				}
+			}
+			catch (Exception e) {
+				logger.error(e);
+			}
+		}
+		else 
+		{
+			throw new Exception();
+		}
+	}
+
+	public void execute(JobExecutionContext arg0) throws JobExecutionException {
+		// Reminder for last week Time entry.
+		logger.info("Weekly reminder is under processing from Action class. ");
+		UserService userService;
+		userService=Factory.getUserService();
+		PerformanceLogService service = null;
+		try {
+			File f1 = readFileFromGlassfishDomainConfigFolder("getInformation.properties");
+			logger.info("check file exis or not from Performance Action "+f1.exists());
+			if(f1.exists()){
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(f1));
+				int allResourceUnderUserId = Integer.parseInt(prop.getProperty("userInfo_userId"));   // Get this userId from properties file
+				String email = prop.getProperty("admimEmail");
+				String pass = prop.getProperty("adminEmailPassword");
+				if(allResourceUnderUserId!=0 && email!=null && pass!=null){
+					List<String> getAllDatesForPreviousWeek = TimeUtility.getAllDatesForPreviousWeek();
+					Calendar cal = Calendar.getInstance();				
+					cal.setTime(Calendar.getInstance().getTime()); // Current Date 
+					List<UserForm> allocatedUserList=userService.getAllocatedResourcesBasedOnExitDate(allResourceUnderUserId, cal);
+					service = PerformanceServiceFactory.getPerformanceService();
+					List<Integer> getNotEnteredResourceList =  service.checkPreviousWeekEntry(getAllDatesForPreviousWeek, allocatedUserList, allResourceUnderUserId);
+					if(!getNotEnteredResourceList.isEmpty()){
+						service.sendNotificationEmail(getNotEnteredResourceList, allResourceUnderUserId, getAllDatesForPreviousWeek, prop);
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}		
+	}
+	private static File readFileFromGlassfishDomainConfigFolder( final String fileName ) throws FileNotFoundException
+	{
+		// Instance Root folder
+		final String instanceRoot = System.getProperty( glassfishInstanceRootPropertyName );	    
+		logger.info(" instanceRoot Value from Performance Action "+instanceRoot);    
+		if (instanceRoot == null){
+			throw new FileNotFoundException( "Cannot find Glassfish instanceRoot. Is the com.sun.aas.instanceRoot system property set?" );
+		}
+		// Instance Root + /config folder
+		File configurationFolder = new File( instanceRoot + File.separator + glassfishDomainConfigurationFolderNameFromPerformance );
+		logger.info("configurationFolder from Performance Action "+configurationFolder);	    
+		File configFile = new File( configurationFolder, fileName );
+		// return the given file
+		return configFile;
+	}
+}

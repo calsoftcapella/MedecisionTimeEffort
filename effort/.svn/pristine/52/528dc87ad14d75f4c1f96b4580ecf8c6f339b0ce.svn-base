@@ -1,0 +1,71 @@
+package com.calsoft.util;
+
+import java.util.StringTokenizer;
+
+public class TimeConveterUtil
+{
+	public static String timeConveter(String time){		
+		StringBuffer buffer=new StringBuffer(time);
+		StringBuffer buffer1=new StringBuffer();
+		String strTarget = ":";
+		if(time.indexOf(':')==-1){
+			try{
+				String num=null;
+				String dec=null;
+				float tt=Float.parseFloat(buffer.toString());
+				String ss=String.valueOf(tt);
+				buffer=new StringBuffer(ss);
+				buffer=buffer.append("0");
+				StringTokenizer st=new  StringTokenizer(ss,".");
+				while(st.hasMoreTokens()){
+					num=st.nextToken();
+					dec=st.nextToken();
+				}
+				Character c = new Character(dec.charAt(0));
+				String s = c.toString();
+				int i = Integer.parseInt(s);
+				int dec1=Integer.parseInt(dec);
+				if(dec1<=0){
+					buffer1.append(num).append(":").append(dec).append("0").append(":00");
+				}
+				else if(dec1>=10&&dec1<=100){
+					buffer1.append(num).append(":").append(dec).append(":00");
+				}			
+				else if(dec1>100){
+					String ff="0.";
+					String num1=null,dec2=null;
+					StringBuffer bufferf=new StringBuffer(ff);			
+					bufferf=bufferf.append(dec1);
+					float z=Float.parseFloat(bufferf.toString());
+					float p = (float)Math.pow(10,2);
+					z = z * p;
+					float tmp = Math.round(z);
+					z= (float)tmp/p;
+					String z1=String.valueOf(z);
+					StringTokenizer st1=new  StringTokenizer(z1,".");
+					while(st1.hasMoreTokens())
+					{
+						num1=st1.nextToken();
+						dec2=st1.nextToken();
+					}
+
+					buffer1.append(num).append(":").append(dec2).append(":00");
+				}
+				else
+					buffer1.append(num).append(":").append(dec).append("0").append(":00");
+				buffer=buffer1;
+			}
+			catch( Exception e){
+				buffer.append(":00:00");				
+			}		
+		}
+		if(time.indexOf(':')!=-1){
+			String[] stringList=time.split(":");
+			if(stringList.length==2){
+				buffer.append(":00");
+			}
+		}		
+		return buffer.toString();
+	}
+
+}

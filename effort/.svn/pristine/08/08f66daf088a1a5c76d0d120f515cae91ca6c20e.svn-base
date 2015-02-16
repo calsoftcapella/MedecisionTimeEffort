@@ -1,0 +1,19 @@
+package com.calsoft.user.dao.test;
+
+import junit.framework.TestCase;
+
+import org.hibernate.Transaction;
+
+import com.calsoft.util.HbnUtil;
+
+public class TestUserDaoImpl extends TestCase{
+
+	public void testGetUserName()
+	{
+		assertNotNull(HbnUtil.getSession());
+		Transaction tx = HbnUtil.getSession().beginTransaction();
+		assertNotNull(HbnUtil.getSession().createSQLQuery("select *from users"));
+		
+	}
+	
+}

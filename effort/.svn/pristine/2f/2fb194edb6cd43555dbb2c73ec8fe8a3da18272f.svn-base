@@ -1,0 +1,35 @@
+package com.calsoft.factory;
+
+import org.apache.log4j.Logger;
+
+import com.calsoft.user.dao.UserDao;
+import com.calsoft.user.dao.UserDaoImpl;
+import com.calsoft.user.service.UserService;
+import com.calsoft.user.service.UserServiceImpl;
+
+public class Factory {
+	private static final Logger logger = Logger.getLogger("name");
+	static UserServiceImpl  serviceImpl; 
+	static UserDaoImpl daoImpl;
+	static
+	{
+		serviceImpl=new UserServiceImpl();
+		daoImpl=new UserDaoImpl();
+	}
+	
+	public static UserService  getUserService()
+	{
+		
+		if(serviceImpl==null)
+			serviceImpl=new UserServiceImpl();
+		logger.info("adduser testing...........");
+		return serviceImpl;
+		
+	}
+	public static UserDao getDao()
+	{
+		if(daoImpl==null)
+			daoImpl=new UserDaoImpl();
+		return daoImpl;
+	}
+}

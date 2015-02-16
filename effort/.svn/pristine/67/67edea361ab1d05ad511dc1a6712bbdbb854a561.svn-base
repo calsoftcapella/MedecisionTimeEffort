@@ -1,0 +1,26 @@
+package com.calsoft.performance.dao;
+
+import java.util.List;
+import com.calsoft.performance.form.PerformanceLogForm;
+import com.calsoft.performance.form.UserCommentForm;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.model.Appraisal;
+import com.calsoft.user.model.User;
+
+
+public interface PerformanceLogDao {
+	
+	public Appraisal getPerformance(int userId , String period) throws Exception;
+	public List<String> getPeriodListForUser(int userId)throws Exception;	
+	public boolean saveUserComment(PerformanceLogForm performanceLogForm,int userId, int id)throws Exception;
+	public List<UserCommentForm> getComments(int id,int userId) throws Exception;
+	public boolean deleteUserComment(int commentId);
+	public boolean editUserComment(int commentId , String userComment);
+	public List<UserForm> getUsersListForPerformanceLogPage(int userId);
+	public List<UserForm> getUsersListForPerformanceLogPageSelectedUserOnTop(int userId,int selectedUserOnTop);	
+	public String[] getRoleNames(int userId,int performanceUserID);
+	public String accountManager(PerformanceLogForm performanceLogForm, int userId,int id);
+	public List<PerformanceLogForm> checkPreviousWeekEntry(List<String> getAllDatesForPreviousWeek,List<UserForm> allocatedUserList) throws Exception;
+	public boolean addCommentAndSendMail(User user, User userWhoLoggedComment, List<String> getAllDatesForPreviousWeek);
+	public boolean getUserAssociationDetails(String dev_managerId,int userIdToWhomCommentWillAdd);
+}

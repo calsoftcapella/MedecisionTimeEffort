@@ -1,0 +1,27 @@
+package com.calsoft.performance.service;
+
+import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
+
+import com.calsoft.performance.form.PerformanceLogForm;
+import com.calsoft.performance.form.UserCommentForm;
+import com.calsoft.user.form.UserForm;
+
+public interface PerformanceLogService {
+	public PerformanceLogForm getPerformance(int userId , String period);
+	public List<PerformanceLogForm> getPeriodListForUser(int userId);
+	public boolean saveUserComment(PerformanceLogForm performanceLogForm , int userId , int id);
+	public List<UserCommentForm> getComments(int id,int userId) ;
+	public boolean deleteUserComment(int commentId);
+	public List<UserForm> getUsersListForPerformanceLogPage(int userId);
+	public boolean editUserComment(int parseInt, String userComment);
+	public List<UserCommentForm> getRoleNames(int userId,int performanceUserID);
+	public List<UserForm> getUsersListForPerformanceLogPageSelectedUserOnTop(int userId, Calendar cal);
+	public String accountManager(PerformanceLogForm performanceLogForm, int userId,int id);
+	public String sendEmailNotification(PerformanceLogForm performanceLogForm, Properties prop);
+	public List<PerformanceLogForm> checkPreviousWeekEntry(List<String> getAllDatesForPreviousWeek, List<UserForm> allocatedUserList) throws Exception;
+	public void sendNotificationEmail(String mailContent, Properties prop);
+	public String sendEmailNotificationAfterResourceComment(PerformanceLogForm performanceLogForm, Properties prop);
+	public void sendEmailAlertWhileDeletingComment(String commentDeletedBy, String trim, String trim2, String commentField, Properties prop) throws Exception;
+}

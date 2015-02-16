@@ -1,0 +1,457 @@
+package com.calsoft.user.service;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.struts.action.ActionForm;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import com.calsoft.exeception.DuplicateUser;
+import com.calsoft.factory.Factory;
+import com.calsoft.report.form.ReportForm;
+import com.calsoft.report.model.Report;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.user.dao.UserDao;
+import com.calsoft.user.form.AppraisalForm;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.form.UserRoleForm;
+import com.calsoft.user.model.Appraisal;
+import com.calsoft.user.model.Role;
+import com.calsoft.user.model.User;
+import com.calsoft.user.model.UserTask;
+import com.calsoft.util.EmailUtil;
+import com.calsoft.util.HbnUtil;
+import com.calsoft.util.PasswordGenerator;
+
+public class UserServiceImpl implements UserService {
+	String passWord;
+	List<User> prevlist;
+	ArrayList<String> taskString = new ArrayList<String>();
+
+	public UserServiceImpl() {
+		// TODO Auto-generated constructor stub
+	}
+
+	public List<UserForm> getUserNames() throws Exception {
+		UserDao dao;
+		List<UserForm> userFormList = new ArrayList<UserForm>();
+		dao = Factory.getDao();
+		List<User> userList = dao.getUserName();
+		Iterator<User> itr = userList.iterator();
+		while (itr.hasNext()) {
+			User user = itr.next();
+			UserForm userform = getUserForm(user);
+			userFormList.add(userform);
+		}
+		return userFormList;
+
+	}
+
+	public String addUser(UserForm form) throws Exception
+	{
+		Session session = HbnUtil.getSession();
+		Transaction transaction = session.beginTransaction();
+		prevlist = Factory.getDao().getUserName();
+		UserDao dao;
+		User user1 = null;
+		String status = "password not sent";
+		User user = getUser(form);
+		int roleId = Integer.parseInt(form.getUser_role());		
+		Iterator<User> iterator = prevlist.iterator();
+		while (iterator.hasNext()) {
+			user1 = iterator.next();
+			if (user1.getUser_Id() == user.getUser_Id())
+				break;
+		}
+		// System.out.println("the user previous status is "+user1.getStatus());
+		boolean b = checkActivation(user.getUser_Id());
+		if (user.getUser_Id() == 0
+				|| (b == true && user.getStatus().equals("Active"))) {
+			passWord = PasswordGenerator.generatePassword();
+			user.setPassWord(passWord);
+			user.setDefpass("timesheet");
+
+		}
+		dao = Factory.getDao();
+		boolean c = dao.addUser(user, session, roleId);
+		if (c == true
+				&& (form.getUserId() == 0 || (b == true && user.getStatus()
+				.equals("Active")))) {
+			try {
+
+				//EmailUtil.sendEmail("linmail.calsoftlabs.com", "465","raghavinath.ravindranath@calsoftlabs.com", "pass##$$","raghavinath.ravindranath@calsoftlabs.com", user.getMail(), "Re:Default password","Hi,"+"\n"+"\n"+"   You have now access to Calsoft Labs Timesheet Application.Your username is "+user.getMail()+" and password is "+passWord+" ."+"\n"+"\n"+"Thanks and Regards"+"\n"+"Raghavi");
+				//System.out.println("i am in mail sending in try before commit");
+				transaction.commit();
+			} catch (Exception e) {
+				// TODO: handle exception
+				// dao.callRollback(user.getUser_Id());
+				transaction.rollback();
+				throw new Exception();
+			}
+			prevlist = Factory.getDao().getUserName();
+			if (form.getUserId() == 0)
+				status = "User added successfully"; /*
+				 * passWord has been sent to
+				 * user email.";
+				 */
+			else
+				status = "User activated successfully"; /*
+				 * passWord has been
+				 * sent to user email";
+				 */
+		} else {
+			try {
+				transaction.commit();
+			} catch (org.hibernate.exception.ConstraintViolationException e) {
+				// TODO: handle exception
+				throw new DuplicateUser();
+			}
+
+		}
+
+		return status;
+	}
+
+	public User getUser(UserForm form) {
+		User user = new User();
+		user.setUser_Id(form.getUserId());
+		user.setUser_name(form.getUserName());
+		user.setPassWord(form.getPassWord());
+		user.setMail(form.getMail());
+		user.setStatus(form.getStatus());
+		if(form.getDefpass()==null)
+		{
+			//System.out.println("DEFPass is Null");
+			user.setDefpass("any");
+		}
+		user.setDefpass(form.getDefpass()); //Global
+		// System.out.println("the user id "+form.getUserId());
+		return user;
+	}
+
+	public UserForm getUserForm(User user) {
+		UserForm form = new UserForm();
+		form.setUserId(user.getUser_Id());
+		form.setUserName(user.getUser_name());
+		form.setMail(user.getMail());
+		form.setStatus(user.getStatus());
+		form.setDefpass(user.getDefpass());
+		return form;
+	}
+
+	@Override
+	public UserForm getUsernameFromId(int userId) {
+		UserDao dao;
+		UserForm userForm = null;
+		try {
+			dao = Factory.getDao();
+			User user = dao.getUsernameFromId(userId);
+			userForm = getUserForm(user);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return userForm;
+	}
+
+	@Override
+	public String matchUser(UserForm userForm, HttpServletRequest request)
+			throws Exception 
+			{
+
+		UserDao dao;
+		String status = null;
+		User user = getUser(userForm);
+		dao = Factory.getDao();
+		status = dao.matchUser(user, request);
+		return status;
+
+			}
+
+	@Override
+	public String getPassword(UserForm userForm) throws Exception {
+		UserDao dao;
+		String status = null;
+		User user = getUser(userForm);
+		dao = Factory.getDao();
+		passWord = PasswordGenerator.generatePassword();
+		user.setPassWord(passWord);
+		status = dao.storePassword(user);
+		if (status != null && status.equalsIgnoreCase("Active")) {
+			//System.out.println("Hi For Sending Mail Enter password");
+			EmailUtil.sendEmail("linmail.calsoftlabs.com", "465",
+					"raghavinath.ravindranath@calsoftlabs.com", "pass##$$",
+					"raghavinath.ravindranath@calsoftlabs.com", user.getMail(),
+					" Check Your Password ", "Hi," + "\n" + "\n"
+							+ "  Your username is " + user.getMail()
+							+ " and password is :" + " " + user.getPassWord()
+							+ " for yours Timesheet Account." + "\n" + "\n"
+							+ "Thanks and Regards" + "\n" + "Raghavi");
+		}
+		//System.out.println("STATUS FROM USERSERVICEIMPL " + status);
+
+		return status;
+	}
+
+	@Override
+	public boolean delete(UserForm form) throws Exception 
+	{
+		// TODO Auto-generated method stub
+		UserDao dao = Factory.getDao();
+		User user = getUser(form);
+		dao.deActivateUser(user);
+		prevlist = Factory.getDao().getUserName();
+		return true;
+	}
+
+	public boolean deleteGlobal(UserForm form) throws Exception 
+	{
+		// TODO Auto-generated method stub
+		//System.out.println("DeleteGlobal Method");
+		UserDao dao = Factory.getDao();
+		User user = getUser(form);
+		boolean global = dao.globalUser(user);
+		prevlist = Factory.getDao().getUserName();
+		return global;
+	}
+
+	@Override
+	public User getUserDetail(int id) throws Exception 
+	{
+		// TODO Auto-generated method stub
+		UserDao dao = Factory.getDao();
+		User user = dao.getUser(id);
+		return user;
+	}
+
+	@Override
+	public List<TaskForm> getUserTask(int user_id) throws Exception
+	{
+		UserDao dao;
+		List<TaskForm> taskList = new ArrayList<TaskForm>();
+		dao = Factory.getDao();
+		List<UserTask> task = dao.getUserTask(user_id);
+		taskString = dao.getTaskMessageList();
+		Iterator<UserTask> itr = task.iterator();
+		while (itr.hasNext())
+		{
+			UserTask userTask = itr.next();
+			TaskForm taskform = getTaskForm(userTask);
+			taskList.add(taskform);
+		}
+		return taskList;
+	}
+
+	@Override
+	public List<UserForm> getAllocatedResources(int userId) {
+		List<User> allocatedResourceList = new ArrayList<User>();
+		List<UserForm> allocatedResourceFormList = new ArrayList<UserForm>();
+		try {
+			UserDao userDao = Factory.getDao();
+			allocatedResourceList = userDao.getAllocatedResources(userId);
+			Iterator<User> itr = allocatedResourceList.iterator();
+			while (itr.hasNext()) {
+				UserForm userform = getUserForm(itr.next());
+				allocatedResourceFormList.add(userform);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		// TODO Auto-generated method stub
+		return allocatedResourceFormList;
+	}
+
+	private TaskForm getTaskForm(UserTask userTask) {
+		TaskForm form = new TaskForm();
+		form.setTask_date(userTask.getTask_date().toString());
+		form.setTime(userTask.getTime());
+		form.setStatus(userTask.getStatus());
+		return form;
+	}
+
+	public ArrayList<String> getTaskMessage() throws Exception {
+		return this.taskString;
+	}
+
+	public boolean checkActivation(int id) {
+		boolean b = false;
+		User user = null;
+		//System.out.println("previous list is " + prevlist);
+		Iterator<User> iterator = prevlist.iterator();
+		while (iterator.hasNext()) {
+			user = iterator.next();
+			if (user.getUser_Id() == id)
+				break;
+		}
+		if (user != null && user.getStatus().equals("InActive"))
+			b = true;
+		return b;
+	}
+
+	@Override
+	public boolean changePassword(UserForm form) throws Exception {
+		UserDao userDao = Factory.getDao();
+		boolean b = false;
+		try {
+			String newPassword = form.getNewPassword();
+			User user = getUser(form);
+			b = userDao.changePassword(user, newPassword);
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new Exception();
+		}
+		// TODO Auto-generated method stub
+		return b;
+	}
+
+	@Override
+	public List<List<Report>> getUserReportAllocation(int userId)
+			throws Exception {
+		// TODO Auto-generated method stub
+		List<List<Report>> combinedReportList = new ArrayList<List<Report>>();
+		UserDao userDao = Factory.getDao();
+		combinedReportList = userDao.getUserReportAllocation(userId);
+		return combinedReportList;
+	}
+
+	/*@Override
+	public List<Object[]> getAllProject() throws Exception 
+	{
+		List<Object[]> allProjectList = new ArrayList<Object[]>();
+		try
+		{
+			UserDao userDao = Factory.getDao();
+			allProjectList = userDao.getAllProject();
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		// TODO Auto-generated method stub
+		return allProjectList;
+	}*/
+
+
+	// Added for Contact detail Info
+	@Override
+	public List<Object> getContactDetails() throws Exception
+	{
+		List<Object> list = null;
+		UserDao userDao = Factory.getDao();		
+		list = userDao.getContactDetails();			
+		return list;
+	}
+
+	@Override
+	public void sendEmailToAll(List<UserForm> allUser)
+	{
+		for (UserForm userForm : allUser) 
+		{
+			try
+			{
+				Date date = new Date();
+				SimpleDateFormat sm = new SimpleDateFormat("MMM/dd/yyyy");
+				EmailUtil.sendEmail("linmail.calsoftlabs.com", "465","raghavinath.ravindranath@calsoftlabs.com", "pass##$$","raghavinath.ravindranath@calsoftlabs.com", userForm.getMail(),
+						" Remainder_Complete_Timesheet ", "<div><p class='MsoPlainText'><b><span style='FONT-SIZE: 14pt'>Hi,<br><br>"
+								+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This is a gentle remainder to complete your <span style='COLOR: #558ed5; mso-style-textfill-fill-color: #558ED5; mso-style-textfill-fill-alpha: 100.0%'>"
+								+"<font color='#0000ff'>Timesheet</font> </span>for the current week <font color='#0000ff'>("+sm.format(date)+").</font></span></b></p>"
+								+"<p class='MsoPlainText'><span style='FONT-SIZE: 14pt'>&nbsp;</span></p><p class='MsoPlainText'><span style='FONT-SIZE: 9pt'>"
+								+"--- Auto generated remainder please do no reply to this email ---------</span></p><p class='MsoNormal'>&nbsp;</p></div>");
+			}
+			catch (Exception e) 
+			{
+				e.printStackTrace();
+				System.out.println(" Error while message sending to: "+userForm.getMail());
+			}
+		}		
+	}
+
+	@Override
+	public List<UserRoleForm> getAllRole() throws Exception {
+		// TODO Auto-generated method stub
+		List<UserRoleForm> listRoleForm = new ArrayList<UserRoleForm>();
+		UserDao userDao = Factory.getDao();		
+		List<Role> allRole = userDao.getAllRoles();	
+		if(!allRole.isEmpty())
+			for (Role role : allRole) {
+				UserRoleForm uf = new UserRoleForm();
+				uf.setRoleId(role.getRoleId());
+				uf.setRoleName(capitalize(role.getRoleName()));
+				listRoleForm.add(uf);
+			}
+		return listRoleForm;
+	}
+	private static String capitalize(String line)	{
+		return Character.toUpperCase(line.charAt(0)) + line.substring(1);
+	}
+
+	@Override 
+	public List<String> getTeamFromContact() throws Exception {
+		// TODO Auto-generated method stub
+		List<String> conList = null;
+		UserDao userDao = Factory.getDao();	
+		conList = userDao.getTeamFromContact();
+		return conList;
+	}
+
+	@Override
+	public List<UserForm> getAllocatedResourcesTeamWise(int userId, ReportForm form) throws Exception {
+		// TODO Auto-generated method stub
+		List<User> allocatedResourceList = new ArrayList<User>();
+		List<UserForm> allocatedResourceFormList = new ArrayList<UserForm>();
+		try {
+			UserDao userDao = Factory.getDao();
+			String team = form.getTeam();
+			if(team!=null){
+				allocatedResourceList = userDao.getAllocatedResourcesTeamWise(userId, team);
+				Iterator<User> itr = allocatedResourceList.iterator();
+				while (itr.hasNext()) {
+					UserForm userform = getUserForm(itr.next());
+					allocatedResourceFormList.add(userform);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return allocatedResourceFormList;
+	}
+
+	@Override
+	public String getRole(int userId) throws Exception {
+		// TODO Auto-generated method stub
+		UserDao userDao = Factory.getDao();	
+		String role = userDao.getUserRole(userId);
+		return role;
+	}
+	@Override
+	public List<AppraisalForm> getObjective(int user_id) throws Exception {
+		// Getting defined Objective for This Resource.
+		List<AppraisalForm> objListForm = new ArrayList<AppraisalForm>();
+		try {
+			UserDao userDao = Factory.getDao();
+			Date d1 = new Date();
+			DateFormat sm = new SimpleDateFormat("yyyy-MM");
+			String month = sm.format(d1);
+			List<Appraisal> listApp = userDao.getObjective(user_id, month);
+			if(listApp!=null && !listApp.isEmpty()){
+				Appraisal a1 = listApp.get(0);
+				AppraisalForm af = new AppraisalForm();
+				af.setCommObjective(a1.getComm_obj());
+				af.setSpecObjective(a1.getSpec_obj());
+				objListForm.add(af);
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception();
+		}
+		return objListForm;
+	}
+}

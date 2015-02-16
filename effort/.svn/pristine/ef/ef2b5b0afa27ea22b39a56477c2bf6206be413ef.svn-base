@@ -1,0 +1,332 @@
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+	pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+<script type="text/javascript">
+ function doPage()
+ {
+	 
+	 var e = document.getElementById("drpLocation");
+	 var strUser = e.options[e.selectedIndex].value;	 
+     if(strUser=="L101")
+    	 {
+	    document.Holiday_View.action = 'holidayListBangalore.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     else if(strUser=="L100")
+    	 {
+	    document.Holiday_View.action = 'holidayListChennai.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     else if(strUser=="L102")
+    	 {
+	    document.Holiday_View.action = 'holidayListMysore.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     else if(strUser=="L103")
+    	 {
+	    document.Holiday_View.action = 'holidayListBoston.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     else if(strUser=="L104")
+    	 {
+	    document.Holiday_View.action = 'holidayListFremont.jsp';
+	    document.Holiday_View.submit();
+    	 }
+     else if(strUser=="L105")
+    	 {
+	    document.Holiday_View.action = 'holidayListFrance.jsp';
+	    document.Holiday_View.submit();
+    	 }
+  
+ }
+</script>
+<style type="text/css">
+body {
+	font: normal 14px Calibri, Calibri, Calibri;
+}
+</style>
+<style type="text/css">
+table.hovertable {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	border-width: 1px;
+	border-color: #999999;
+	border-collapse: collapse;
+	margin-left: 1mm;
+}
+
+table.hovertable th {
+	background-color: #A5A1A0;
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+table.hovertable tr {
+	background-color: #FFFFFF;
+}
+
+table.hovertable td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+</style>
+<style type="text/css">
+p {
+	margin-left: 13cm;
+	margin-top: 2cm;
+}
+
+div.box {
+	border: solid 1px #a9c6c9;
+	background-color: #FFFFFF;
+	display: table;
+	padding: 0px;
+	width: 290px;
+	align: left;
+	margin-left: 0cm;
+	margin-top: 0cm;
+	text-align: left;
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+}
+
+div.boxMess {
+	border: solid 3px #a9c6c9;
+	border-style: dotted;
+	background-color: #FFFFFF;
+	display: table;
+	padding: 0px;
+	width: 695px;
+	hight: 0px;
+	align: left;
+	margin-left: 2px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	text-align: left;
+	color: #F50000;
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+}
+</style>
+
+</head>
+<body>
+	<div style="font-family: verdana, arial, sans-serif; font-size: 11px;">
+		<form name="Holiday_View" method="post" id="Holiday_View">
+			<div class="holidad_padlft_05">
+				<div id="UpdatePanel1">
+
+					<div>
+						<!--cont frame div-->
+						<div id="Navigationcontainer">
+							<div style="display: none;">
+
+								<span id="lblError"
+									style="display: inline-block; color: Red; font-family: verdana; font-size: x-small; height: 15px; width: 219px;"></span>
+							</div>
+							<div>
+								<div
+									style="font-family: verdana, arial, sans-serif; font-size: 12px; font-weight: bold; color: #0000FF; text-align: left; position: absolute;">List
+									of Holidays</div>
+								<div>
+									<table>
+										<tbody>
+											<tr>
+												<td align="right" width="800"><span id="lblLocation">Location</span>
+													<select name="drpLocation" onchange="doPage();"
+													id="drpLocation"
+													style="font-family: verdana, arial, sans-serif; font-size: 11px;">
+														<option value="L101"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">Bengaluru</option>
+														<option value="L100"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">Chennai</option>
+														<option value="L102"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">Mysore</option>
+														<option  value="L103"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">Boston</option>
+														<option value="L104"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">Fremont</option>
+														<option selected="selected"  value="L105"
+															style="font-family: verdana, arial, sans-serif; font-size: 11px;">France</option>
+
+												</select></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+								<div class="clear" style="text-align: center;color: red;">No Data Found.</div>
+								<!-- <div id="HomeGrid"
+									style="background: none repeat scroll 0% 0% transparent;">
+									<table rules="all" id="dgrHolidayView"
+										style="width: 100%; border-collapse: collapse; font-family: verdana, arial, sans-serif; font-size: 11px;"
+										align="center" border="1" cellspacing="0">
+										<tbody>
+											<tr class="bgh">
+												<td><span id="dgrHolidayView_ctl01_lblHolidayDate">Holiday
+														Date</span></td>
+												<td><span id="dgrHolidayView_ctl01_lblHolidayDay">Day</span>
+												</td>
+												<td><span id="dgrHolidayView_ctl01_lblHolidayName">Holiday
+														Name</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl01_lblLocationName">Location Name</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl01_lblOptional">Optional</span>
+												</td>
+											</tr>
+											<tr class="data" style="height: 25px;">
+												<td><span id="dgrHolidayView_ctl02_GrdHolidayDate"
+													class="DgItems">2nd January 2012</span></td>
+												<td><span id="dgrHolidayView_ctl02_GrdHolidayDay"
+													class="DgItems">Monday</span></td>
+												<td><span id="dgrHolidayView_ctl02_GrdHolidayName"
+													class="DgItems">New Years Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl02_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl02_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data"
+												style="background-color: rgb(248, 248, 248); height: 25px;">
+												<td><span id="dgrHolidayView_ctl03_GrdHolidayDate"
+													class="DgItems">16th January 2012</span></td>
+												<td><span id="dgrHolidayView_ctl03_GrdHolidayDay"
+													class="DgItems">Monday</span></td>
+												<td><span id="dgrHolidayView_ctl03_GrdHolidayName"
+													class="DgItems">Martin Luther King, Jr. Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl03_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl03_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data" style="height: 25px;">
+												<td><span id="dgrHolidayView_ctl04_GrdHolidayDate"
+													class="DgItems">20th February 2012</span></td>
+												<td><span id="dgrHolidayView_ctl04_GrdHolidayDay"
+													class="DgItems">Monday</span></td>
+												<td><span id="dgrHolidayView_ctl04_GrdHolidayName"
+													class="DgItems">Presidents Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl04_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl04_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data"
+												style="background-color: rgb(248, 248, 248); height: 25px;">
+												<td><span id="dgrHolidayView_ctl05_GrdHolidayDate"
+													class="DgItems">6th April 2012</span></td>
+												<td><span id="dgrHolidayView_ctl05_GrdHolidayDay"
+													class="DgItems">Friday</span></td>
+												<td><span id="dgrHolidayView_ctl05_GrdHolidayName"
+													class="DgItems">Good Friday</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl05_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl05_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data" style="height: 25px;">
+												<td><span id="dgrHolidayView_ctl06_GrdHolidayDate"
+													class="DgItems">28th May 2012</span></td>
+												<td><span id="dgrHolidayView_ctl06_GrdHolidayDay"
+													class="DgItems">Monday</span></td>
+												<td><span id="dgrHolidayView_ctl06_GrdHolidayName"
+													class="DgItems">Memorial Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl06_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl06_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data"
+												style="background-color: rgb(248, 248, 248); height: 25px;">
+												<td><span id="dgrHolidayView_ctl07_GrdHolidayDate"
+													class="DgItems">4th July 2012</span></td>
+												<td><span id="dgrHolidayView_ctl07_GrdHolidayDay"
+													class="DgItems">Wednesday</span></td>
+												<td><span id="dgrHolidayView_ctl07_GrdHolidayName"
+													class="DgItems">Independence Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl07_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl07_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data" style="height: 25px;">
+												<td><span id="dgrHolidayView_ctl08_GrdHolidayDate"
+													class="DgItems">3rd September 2012</span></td>
+												<td><span id="dgrHolidayView_ctl08_GrdHolidayDay"
+													class="DgItems">Monday</span></td>
+												<td><span id="dgrHolidayView_ctl08_GrdHolidayName"
+													class="DgItems">Labor Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl08_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl08_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data"
+												style="background-color: rgb(248, 248, 248); height: 25px;">
+												<td><span id="dgrHolidayView_ctl09_GrdHolidayDate"
+													class="DgItems">22nd November 2012</span></td>
+												<td><span id="dgrHolidayView_ctl09_GrdHolidayDay"
+													class="DgItems">Thursday</span></td>
+												<td><span id="dgrHolidayView_ctl09_GrdHolidayName"
+													class="DgItems">Thanksgiving Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl09_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl09_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data" style="height: 25px;">
+												<td><span id="dgrHolidayView_ctl10_GrdHolidayDate"
+													class="DgItems">23rd November 2012</span></td>
+												<td><span id="dgrHolidayView_ctl10_GrdHolidayDay"
+													class="DgItems">Friday</span></td>
+												<td><span id="dgrHolidayView_ctl10_GrdHolidayName"
+													class="DgItems">Day after Thanksgiving</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl10_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl10_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+											<tr class="data"
+												style="background-color: rgb(248, 248, 248); height: 25px;">
+												<td><span id="dgrHolidayView_ctl11_GrdHolidayDate"
+													class="DgItems">25th December 2012</span></td>
+												<td><span id="dgrHolidayView_ctl11_GrdHolidayDay"
+													class="DgItems">Tuesday</span></td>
+												<td><span id="dgrHolidayView_ctl11_GrdHolidayName"
+													class="DgItems">Christmas Day</span></td>
+												<td>
+                                                    <span id="dgrHolidayView_ctl11_GrdLocationName" class="DgItems">Boston</span>
+                                                </td>
+												<td><span id="dgrHolidayView_ctl11_GrdOptional"
+													class="DgItems"></span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div> -->
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+</body>
+</html>

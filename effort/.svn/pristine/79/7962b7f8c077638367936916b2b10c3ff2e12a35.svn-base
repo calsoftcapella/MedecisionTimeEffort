@@ -1,0 +1,979 @@
+package com.calsoft.leave.action;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.GregorianCalendar;
+import java.util.Iterator;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import org.apache.log4j.Logger;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import com.calsoft.leave.form.LeaveForm;
+import com.calsoft.leave.model.Leave;
+import com.calsoft.leave.service.LeaveService;
+import com.calsoft.leave.service.factory.LeaveServiceFactory;
+import com.calsoft.report.model.Report;
+import com.calsoft.report.service.ReportService;
+import com.calsoft.report.service.ReportServiceFactory;
+/*Action class for LeaveEntry Module*/
+
+public class LeaveAction extends DispatchAction {
+
+	/* Implementing Logger */
+
+	private static final Logger logger = Logger.getLogger("name");
+
+	/*
+	 * saveDetail() method :Performing the save operation from getDetail page of
+	 * Leave Entry
+	 */
+
+	public ActionForward saveDetail(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String[] checkDateNew = null;
+				String selectMonthYear = null;
+				List leaveList = null;
+				String month = "";
+				String year = "";
+				if (/*request.getParameter("checkDate") != null&& */ request.getParameter("iYear") != null&& request.getParameter("iMonth") != null)
+				{
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+					leaveForm.setSelectMonth(selectMonthYear);
+					leaveService.saveLeave(leaveForm, request, checkDate,
+							selectMonth);
+
+					List leaveDate = leaveService
+							.getLeaveDate(selectMonth, request);
+					request.setAttribute("leaveDateList", leaveDate);
+					leaveList = leaveService.getLeave(selectMonthYear, request);
+					request.setAttribute("leaveFormList", leaveList);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getLeaveDetails");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * saveDashBoard() method :Performing the save operation from dashBoard page
+	 * of Leave Entry
+	 */
+
+	public ActionForward saveDashBoard(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String[] checkDateNew = null;
+				String selectMonthYear = null;
+				List leaveList = null;
+				String dateSeparatedByComma = null;
+				String month = "";
+				String year = "";
+				if (/*request.getParameter("checkDate") != null
+					&& */ request.getParameter("iYear") != null
+					&& request.getParameter("iMonth") != null) 
+				{
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+					checkDateNew = request.getParameterValues("checkDate");
+					leaveForm.setSelectMonth(selectMonthYear);
+					leaveService.saveLeave(leaveForm, request, checkDateNew,
+							selectMonth);
+
+					leaveList = leaveService.getLeave(selectMonthYear, request);
+					ArrayList leaveDateNew = new ArrayList();
+					List leaveDate = null;
+					List leaveDate1 = leaveService.getLeaveDate(selectMonth,
+							request);
+					leaveDate = leaveDate1;
+					Iterator dateItr = leaveDate1.iterator();
+					while (dateItr.hasNext()) {
+						String stringDate = dateItr.next().toString();
+						leaveDateNew.add(new Integer(stringDate));
+
+					}
+					Collections.sort(leaveDateNew);
+					List<Leave> leaveUpdatedList = new ArrayList<Leave>();
+					List<Leave> dashBoardList = leaveService.getDashBoardList(
+							selectMonthYear, request);
+					for (int pk = 0; pk < leaveDateNew.size(); pk++) {
+						dateSeparatedByComma = dateSeparatedByComma + ","
+								+ leaveDateNew.get(pk);
+					}
+					if (dateSeparatedByComma != null) {
+						dateSeparatedByComma = dateSeparatedByComma.replaceAll(
+								"null,", "");
+						Iterator<Leave> itr = dashBoardList.iterator();
+						while (itr.hasNext()) {
+							Leave leaveValue = itr.next();
+							leaveValue.setLeave_month(selectMonthYear);
+							leaveValue.setLeave_date(dateSeparatedByComma);
+							leaveUpdatedList.add(leaveValue);
+						}
+					}
+					request.setAttribute("leaveList", leaveUpdatedList);
+					request.setAttribute("leaveDate", leaveDate);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getLeaveDashBoard");
+		}
+		else
+			throw new Exception();
+	}
+	/*
+	 * getLeaveDetails() method :Retriving the all records for selected month of
+	 * Leave Entry
+	 */
+	public ActionForward getLeaveDetails(ActionMapping mapping,
+			ActionForm form, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String selectMonthYear = null;
+				List<LeaveForm> leaveList = null;
+				selectYear = request.getParameter("iYear");
+				selectMonth = request.getParameter("iMonth");
+				int selectM = Integer.parseInt(selectMonth);
+				selectM = selectM + 1;
+				selectMonth = new Integer(selectM).toString();
+				String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+						"Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+				if (selectMonth.equals("1")) {
+					selectMonth = monthName[0];
+				}
+				if (selectMonth.equals("2")) {
+					selectMonth = monthName[1];
+				}
+				if (selectMonth.equals("3")) {
+					selectMonth = monthName[2];
+				}
+				if (selectMonth.equals("4")) {
+					selectMonth = monthName[3];
+				}
+				if (selectMonth.equals("5")) {
+					selectMonth = monthName[4];
+				}
+				if (selectMonth.equals("6")) {
+					selectMonth = monthName[5];
+				}
+				if (selectMonth.equals("7")) {
+					selectMonth = monthName[6];
+				}
+				if (selectMonth.equals("8")) {
+					selectMonth = monthName[7];
+				}
+				if (selectMonth.equals("9")) {
+					selectMonth = monthName[8];
+				}
+				if (selectMonth.equals("10")) {
+					selectMonth = monthName[9];
+				}
+				if (selectMonth.equals("11")) {
+					selectMonth = monthName[10];
+				}
+				if (selectMonth.equals("12")) {
+					selectMonth = monthName[11];
+				}
+				selectMonthYear = selectMonth + "-" + selectYear;
+				List leaveDate = leaveService.getLeaveDate(selectMonth, request);
+				request.setAttribute("leaveDateList", leaveDate);
+				leaveList = leaveService.getLeave(selectMonthYear, request);
+				request.setAttribute("leaveFormList", leaveList);
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getLeaveDetails");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * getLeaveDashBoard() method :Retriving specific records for selected month
+	 * of Leave Entry
+	 */
+
+	public ActionForward getLeaveDashBoard(ActionMapping mapping,ActionForm form, HttpServletRequest request,HttpServletResponse response) throws Exception 
+	{
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				sess.removeAttribute("selectedDate");	
+				sess.removeAttribute("conList");
+				sess.removeAttribute("userList");
+				sess.removeAttribute("conListUpdate");
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String selectMonthYear = null;
+				String dateSeparatedByComma = null;
+				selectYear = request.getParameter("iYear");
+				selectMonth = request.getParameter("iMonth");
+				String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+						"Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+				if (selectMonth == null)
+				{
+					Calendar ca = new GregorianCalendar();
+					int iTMonth = ca.get(Calendar.MONTH);
+					iTMonth = iTMonth + 1;
+					int iTYear = ca.get(Calendar.YEAR);
+					selectMonth = new Integer(iTMonth).toString();
+					selectYear = new Integer(iTYear).toString();
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+				} else {
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+				}
+				//List leaveList = leaveService.getLeave(selectMonthYear, request);
+				ArrayList leaveDateNew = new ArrayList();
+				List leaveDate =  leaveService.getLeaveDate(selectMonth, request);
+				Iterator dateItr = leaveDate.iterator();
+				while (dateItr.hasNext()) {
+					String stringDate = dateItr.next().toString();
+					//System.out.println("stringDate" + stringDate);
+					leaveDateNew.add(new Integer(stringDate));
+				}
+				Collections.sort(leaveDateNew);
+				List<Leave> leaveUpdatedList = new ArrayList<Leave>();
+				List<Leave> dashBoardList = leaveService.getDashBoardList(selectMonthYear, request);
+				for (int pk = 0; pk < leaveDateNew.size(); pk++) {
+					dateSeparatedByComma = dateSeparatedByComma + ","+ leaveDateNew.get(pk);
+				}
+				if (dateSeparatedByComma != null) {
+					dateSeparatedByComma = dateSeparatedByComma.replaceAll("null,",
+							"");
+					Iterator<Leave> itr = dashBoardList.iterator();
+					while (itr.hasNext()) {
+						Leave leaveValue = itr.next();
+						leaveValue.setLeave_month(selectMonthYear);
+						leaveValue.setLeave_date(dateSeparatedByComma);
+						leaveUpdatedList.add(leaveValue);
+					}
+				}
+				request.setAttribute("leaveList", leaveUpdatedList);
+				request.setAttribute("leaveDate", leaveDate);
+			} 
+			catch (Exception e) 
+			{
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getLeaveDashBoard");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * clearCheckedDate() method :Clear checkboxes which are checked for
+	 * selected month of Leave Entry
+	 */
+
+	public ActionForward clearCheckedDate(ActionMapping mapping,
+			ActionForm form, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String selectMonthYear = null;
+				List leaveList = null;
+				if (request.getParameter("checkDate") != null
+						&& request.getParameter("iYear") != null
+						&& request.getParameter("iMonth") != null) {
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+
+					leaveService.clearCheck(leaveForm, request, checkDate);
+
+				}
+				List leaveDate = leaveService.getLeaveDate(selectMonth, request);
+				request.setAttribute("leaveDateList", leaveDate);
+				leaveList = leaveService.getLeave(selectMonthYear, request);
+				request.setAttribute("leaveFormList", leaveList);
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getLeaveDetails");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * clearCheckedDateDashBoard() method :Removing records which are checked
+	 * for selected month of Leave Entry in Dash Board
+	 */
+
+	public ActionForward clearCheckedDateDashBoard(ActionMapping mapping,
+			ActionForm form, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String selectMonthYear = null;
+				String dateSeparatedByComma = null;
+				if (request.getParameter("checkDate") != null
+						&& request.getParameter("iYear") != null
+						&& request.getParameter("iMonth") != null) {
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+
+					leaveService.clearCheck(leaveForm, request, checkDate);
+
+				}
+				//List leaveList = leaveService.getLeave(selectMonthYear, request);
+				ArrayList leaveDateNew = new ArrayList();
+				List leaveDate =leaveService.getLeaveDate(selectMonth, request);
+				Iterator dateItr = leaveDate.iterator();
+				while (dateItr.hasNext()) {
+					String stringDate = dateItr.next().toString();
+					leaveDateNew.add(new Integer(stringDate));
+
+				}
+				Collections.sort(leaveDateNew);
+				List<Leave> leaveUpdatedList = new ArrayList<Leave>();
+				List<Leave> dashBoardList = leaveService.getDashBoardList(
+						selectMonthYear, request);
+				for (int pk = 0; pk < leaveDateNew.size(); pk++) {
+
+					dateSeparatedByComma = dateSeparatedByComma + ","
+							+ leaveDateNew.get(pk);
+				}
+				if (dateSeparatedByComma != null) {
+					dateSeparatedByComma = dateSeparatedByComma.replaceAll("null,",
+							"");
+					Iterator<Leave> itr = dashBoardList.iterator();
+					while (itr.hasNext()) {
+						Leave leaveValue = itr.next();
+						leaveValue.setLeave_month(selectMonthYear);
+						leaveValue.setLeave_date(dateSeparatedByComma);
+						leaveUpdatedList.add(leaveValue);
+					}
+				}
+				request.setAttribute("leaveList", leaveUpdatedList);
+				request.setAttribute("leaveDate", leaveDate);
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("clearCheckedDateDashBoard");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * saveTeamDetail() method :Performing the save operation from
+	 * getTeamLeaveDetail page of Leave Entry
+	 */
+
+	public ActionForward saveTeamDetail(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String selectMonthYear = null;
+				if (/*request.getParameter("checkDate") != null
+					&&*/ request.getParameter("iYear") != null
+					&& request.getParameter("iMonth") != null) {
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+					leaveForm.setSelectMonth(selectMonthYear);
+					leaveService.saveLeave(leaveForm, request, checkDate,selectMonth);
+					List leaveDate = leaveService.getLeaveDate(selectMonth, request);
+					request.setAttribute("leaveDateList", leaveDate);
+					int userId = Integer.parseInt(sess.getAttribute("user_id").toString());
+					ReportService reportservice = ReportServiceFactory.getReportService();
+					List<List<Report>> combinedList = reportservice.getUserReportAllocation(userId);
+					Iterator<List<Report>> itr = combinedList.iterator();
+					//int count = 1;
+					//List<Report> unallocatedList = null;
+					List<Report> allocatedList = null;
+					if (itr.hasNext()) {
+						//if (count == 1) {
+						allocatedList = itr.next();
+						//}
+						/*if (count == 2) {
+						unallocatedList = itr.next();
+					}*/
+						//count++;
+					}
+					//System.out.println("Allocated list size=" + allocatedList);
+					List<LeaveForm> leaveFormList = leaveService.getTeamLeaveDetail(allocatedList, selectMonthYear);
+					//UserService userService = Factory.getUserService();
+					//List<UserForm> allocatedUserList = userService.getAllocatedResources(userId);
+					request.setAttribute("leaveFormList", leaveFormList);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getTeamLeaveDetail");
+		}
+		else
+			throw new Exception();
+	}
+
+	/*
+	 * getTeamLeaveDetail() method :Performing the retrieving operation from
+	 * getTeamLeaveDetail page of Leave Entry
+	 */
+	public ActionForward getTeamLeaveDetail(ActionMapping map, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+					throws Exception {
+		// get the resources that are allocated for a particular user
+		//System.out.println("getTeamLeaveDetail()");
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String selectMonthYear = null;
+				List<LeaveForm> leaveList = null;
+				selectYear = request.getParameter("iYear");
+				selectMonth = request.getParameter("iMonth");
+				int selectM = Integer.parseInt(selectMonth);
+				selectM = selectM + 1;
+				selectMonth = new Integer(selectM).toString();
+				String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+						"Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+				if (selectMonth.equals("1")) {
+					selectMonth = monthName[0];
+				}
+				if (selectMonth.equals("2")) {
+					selectMonth = monthName[1];
+				}
+				if (selectMonth.equals("3")) {
+					selectMonth = monthName[2];
+				}
+				if (selectMonth.equals("4")) {
+					selectMonth = monthName[3];
+				}
+				if (selectMonth.equals("5")) {
+					selectMonth = monthName[4];
+				}
+				if (selectMonth.equals("6")) {
+					selectMonth = monthName[5];
+				}
+				if (selectMonth.equals("7")) {
+					selectMonth = monthName[6];
+				}
+				if (selectMonth.equals("8")) {
+					selectMonth = monthName[7];
+				}
+				if (selectMonth.equals("9")) {
+					selectMonth = monthName[8];
+				}
+				if (selectMonth.equals("10")) {
+					selectMonth = monthName[9];
+				}
+				if (selectMonth.equals("11")) {
+					selectMonth = monthName[10];
+				}
+				if (selectMonth.equals("12")) {
+					selectMonth = monthName[11];
+				}
+				selectMonthYear = selectMonth + "-" + selectYear;
+				List leaveDate = leaveService.getLeaveDate(selectMonth, request);
+				request.setAttribute("leaveDateList", leaveDate);
+				leaveList = leaveService.getLeave(selectMonthYear, request);
+				request.setAttribute("leaveFormList", leaveList);
+
+				int userId = Integer.parseInt(sess.getAttribute("user_id").toString());
+				ReportService reportservice = ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList = reportservice
+						.getUserReportAllocation(userId);
+				logger.info("combinedList new" + combinedList);
+				Iterator<List<Report>> itr = combinedList.iterator();
+				//int count = 1;
+				//List<Report> unallocatedList = null;
+				List<Report> allocatedList = null;
+				if(itr.hasNext())
+				{
+					//if (count == 1) {
+					allocatedList = itr.next();
+					//}
+					/*if (count == 2) {
+					unallocatedList = itr.next();
+				}*/
+					//count++;
+				}						
+				List<LeaveForm> leaveFormList = leaveService.getTeamLeaveDetail(allocatedList, selectMonthYear);
+				//userService = Factory.getUserService();
+				//List<UserForm> allocatedUserList = userService.getAllocatedResources(userId);
+				request.setAttribute("leaveFormList", leaveFormList);
+			} catch (Exception e) {
+				e.printStackTrace();
+				new Exception();
+			}
+			return map.findForward("getTeamLeaveDetail");
+		}
+		else throw new Exception();
+	}
+
+	/*
+	 * clearTeamCheckedDate() method :Performing the removing operation from
+	 * getTeamLeaveDetail page of Leave Entry
+	 */
+
+	public ActionForward clearTeamCheckedDate(ActionMapping mapping,
+			ActionForm form, HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		HttpSession sess =  request.getSession();
+		if(sess.getAttribute("userName")!=null)
+		{
+			try {
+				LeaveForm leaveForm = (LeaveForm) form;
+				LeaveService leaveService = LeaveServiceFactory.getLeaveService();
+				String selectYear = null;
+				String selectMonth = null;
+				String[] checkDate = null;
+				String selectMonthYear = null;
+				if (request.getParameter("checkDate") != null
+						&& request.getParameter("iYear") != null
+						&& request.getParameter("iMonth") != null) {
+					selectYear = request.getParameter("iYear");
+					selectMonth = request.getParameter("iMonth");
+					int selectM = Integer.parseInt(selectMonth);
+					selectM = selectM + 1;
+					selectMonth = new Integer(selectM).toString();
+					String[] monthName = { "Jan", "Feb", "Mar", "Apr", "May",
+							"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+					if (selectMonth.equals("1")) {
+						selectMonth = monthName[0];
+					}
+					if (selectMonth.equals("2")) {
+						selectMonth = monthName[1];
+					}
+					if (selectMonth.equals("3")) {
+						selectMonth = monthName[2];
+					}
+					if (selectMonth.equals("4")) {
+						selectMonth = monthName[3];
+					}
+					if (selectMonth.equals("5")) {
+						selectMonth = monthName[4];
+					}
+					if (selectMonth.equals("6")) {
+						selectMonth = monthName[5];
+					}
+					if (selectMonth.equals("7")) {
+						selectMonth = monthName[6];
+					}
+					if (selectMonth.equals("8")) {
+						selectMonth = monthName[7];
+					}
+					if (selectMonth.equals("9")) {
+						selectMonth = monthName[8];
+					}
+					if (selectMonth.equals("10")) {
+						selectMonth = monthName[9];
+					}
+					if (selectMonth.equals("11")) {
+						selectMonth = monthName[10];
+					}
+					if (selectMonth.equals("12")) {
+						selectMonth = monthName[11];
+					}
+					selectMonthYear = selectMonth + "-" + selectYear;
+					checkDate = request.getParameterValues("checkDate");
+
+					leaveService.clearCheck(leaveForm, request, checkDate);
+				}
+				List leaveDate = leaveService.getLeaveDate(selectMonth, request);
+				request.setAttribute("leaveDateList", leaveDate);
+				List leaveList = leaveService.getLeave(selectMonthYear, request);
+				request.setAttribute("leaveFormList", leaveList);
+				int userId = Integer.parseInt(sess.getAttribute("user_id").toString());
+				//String allocatedResource = new Integer(userId).toString();
+				ReportService reportservice = ReportServiceFactory.getReportService();
+				List<List<Report>> combinedList = reportservice.getUserReportAllocation(userId);
+				logger.info("combinedList new" + combinedList);
+				Iterator<List<Report>> itr = combinedList.iterator();
+				//int count = 1;
+				//List<Report> unallocatedList = null;
+				List<Report> allocatedList = null;
+				if(itr.hasNext()) {
+					//if (count == 1) {
+					allocatedList = itr.next();
+					/*}
+				if (count == 2) {
+					unallocatedList = itr.next();
+				}
+				count++;*/
+				}
+				//System.out.println("Allocated list size=" + allocatedList);
+				List<LeaveForm> leaveFormList = leaveService.getTeamLeaveDetail(allocatedList, selectMonthYear);
+				//UserService userService = Factory.getUserService();
+				//List<UserForm> allocatedUserList = userService.getAllocatedResources(userId);
+				request.setAttribute("leaveFormList", leaveFormList);
+			} catch (Exception e) {
+				e.printStackTrace();
+				logger.error(e);
+				throw new Exception();
+			}
+			return mapping.findForward("getTeamLeaveDetail");
+		}
+		else throw new Exception();
+	}
+}

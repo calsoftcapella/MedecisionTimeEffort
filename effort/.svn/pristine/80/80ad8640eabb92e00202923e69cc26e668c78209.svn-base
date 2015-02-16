@@ -1,0 +1,19 @@
+package com.calsoft.user.service;
+
+import java.util.StringTokenizer;
+
+public class St 
+{
+public static void main(String ar[])
+{ int dec1=67,cc=0;
+	
+	 for(int i=dec1;i>=10;i--)
+	 {
+		 cc=dec1%10;
+		 
+		 dec1=dec1/10;
+		 System.out.println("xxx"+dec1);
+	 }
+	 System.out.println("xxx"+cc);
+}
+}

@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0"
+	xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+	<xsl:template match="/">
+		<html>
+			<body>
+				Team,
+				<br></br>
+				<br>
+					<div style="padding-left: 10px;">
+						Please find below your <xsl:value-of select="TimesheetReport/currentMonth/value" /> month timesheet report till date. 
+						Kindly fill in your timesheet in <a href="http://pepq.calsoftlabs.com/effort/">http://pepq.calsoftlabs.com/effort/</a> by eod..
+					</div>
+				</br>
+				<!-- <br>
+					<div style="color: green;">
+						<br> Note:</br>
+						<br>1. Non Entries will be considered as leave.</br>
+						<br>2. Mark "9 Hrs" for public holiday and leaves.</br>
+						<br>3. For comp offs, please get approval from your onsite
+							lead/manager and keep us informed, else it will be treated as
+							leave.
+						</br>
+					</div>
+				</br> -->
+				<h2>Timesheet Report <xsl:value-of select="TimesheetReport/currentMonth/value" /></h2>
+				<table
+					style="font-family: verdana, arial,sans-serif;font-size: 11px;color: #333333;border-width: 1px;border-color: #999999;border-collapse: collapse;">
+					<tr>    <!-- bgcolor="#808080" -->
+						<th
+							style="border-width: 1px;padding: 8px;border-style: solid;background-color: #A5A1A0;border-color: #a9c6c9;height: 10mm;width: 12mm;">Day</th>
+						<xsl:for-each select="TimesheetReport/monthDays">
+							<!-- <th align="left"> -->
+							<!-- <xsl:value-of select="date"/> -->
+							<xsl:choose>
+								<xsl:when test="days = 'Sat '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="days" />
+									</th>
+								</xsl:when>
+								<xsl:when test="days = 'Sun '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="days" />
+									</th>
+								</xsl:when>
+								<xsl:otherwise>
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #A5A1A0;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="days" />
+									</th>
+								</xsl:otherwise>
+							</xsl:choose>
+						</xsl:for-each>
+						<th align="left" rowspan="2" bgcolor="#A5A1A0">Total Time In Hrs.</th>
+					</tr>
+					<tr bgcolor="#A5A1A0">
+						<th
+							style="border-width: 1px;padding: 8px;border-style: solid;background-color: #A5A1A0;border-color: #a9c6c9;height: 10mm;width: 12mm;">Username</th>
+						<xsl:for-each select="TimesheetReport/dateCount">
+							<xsl:choose>
+								<xsl:when test="date_seq = '1 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '2 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '3 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '4 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '5 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '6 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '7 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '8 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '9 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '10 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '11 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '12 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '13 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '14 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '15 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '16 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '17 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '18 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '19 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '20 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '21 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '22 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '23 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '24 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '25 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '26 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '27 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '28 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '29 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '30 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:when test="date_seq = '31 '">
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #FFB6C1;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:when>
+								<xsl:otherwise>
+									<th
+										style="border-width: 1px;padding: 8px;border-style: solid;background-color: #A5A1A0;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+										<xsl:value-of select="date_seq" />
+									</th>
+								</xsl:otherwise>
+							</xsl:choose>
+						</xsl:for-each>
+						<!-- <th align="left">Total Time In Hrs.</th> -->
+					</tr>
+					<xsl:for-each select="TimesheetReport/reportData">
+						<tr>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;background-color: #EBEBEB;">
+								<xsl:value-of select="user_name" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time1" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time2" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time3" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time4" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time5" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time6" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time7" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time8" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time9" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time10" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time11" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time12" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time13" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time14" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time15" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time16" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time17" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time18" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time19" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time20" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time21" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time22" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time23" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time24" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time25" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time26" />
+							</td>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time27" />
+							</td>
+
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time28" />
+							</td>
+							<xsl:if test="time29!='empty'">
+							<td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time29" />
+							</td>
+							</xsl:if>
+							<xsl:if test="time30!='empty'">
+							<td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="time30" />
+							</td>
+							</xsl:if>
+							<xsl:if test="time31!='empty'">
+							<td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:value-of select="TimesheetReport/calenderLength/totalDateSize"/>
+							</td>
+							</xsl:if>
+							<td
+								style="border-width: 1px;padding: 8px;border-style: solid;border-color: #a9c6c9;height: 10mm;width: 12mm;">
+								<xsl:choose>
+									<xsl:when test="total_time = 0.0">
+									</xsl:when>
+									<xsl:otherwise>
+										<xsl:value-of select="total_time" />
+									</xsl:otherwise>
+								</xsl:choose>
+							</td>
+						</tr>
+					</xsl:for-each>
+				</table>
+				<br></br>
+				Note: Kindly ignore this email if you have already filled in your timsheet.
+				<br></br>
+				<br>
+					Thanks and Regards
+				</br>
+				<div>Raghavi</div>
+			</body>
+		</html>
+	</xsl:template>
+</xsl:stylesheet>

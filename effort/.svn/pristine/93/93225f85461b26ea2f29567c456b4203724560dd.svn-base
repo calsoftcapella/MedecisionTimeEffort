@@ -1,0 +1,855 @@
+package com.calsoft.user.dao;
+
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.apache.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.SQLQuery;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import com.calsoft.exeception.DuplicateUser;
+import com.calsoft.report.model.Report;
+import com.calsoft.user.model.Appraisal;
+import com.calsoft.user.model.ClientFeedback;
+import com.calsoft.user.model.Contact;
+import com.calsoft.user.model.ModelContact;
+import com.calsoft.user.model.Role;
+import com.calsoft.user.model.User;
+import com.calsoft.user.model.UserRole;
+import com.calsoft.user.model.UserTask;
+import com.calsoft.user.service.UserService;
+import com.calsoft.util.HbnUtil;
+import com.calsoft.util.Mycomparator;
+import com.calsoft.util.TimeUtility;
+@ SuppressWarnings("all")
+public class UserDaoImpl implements UserDao{
+	private static final Logger logger = Logger.getLogger("name");
+	UserService userService;
+	private ArrayList<String> taskListMessage = null;
+	static UserDaoImpl daoImpl;
+	@Override
+	public boolean addUser(User user,Session session,int roleId) throws Exception{
+		try {
+			int id=user.getUser_Id();
+			if(id!=0){
+				User user1=(User)session.load(User.class,id);
+				user1.setUser_name(user.getUser_name());
+				user1.setMail(user.getMail());
+				user1.setStatus(user.getStatus());
+				session.update(user1);				
+				List<String> userRoleObj = session.createSQLQuery("select role_id from user_role where user_id="+id).list();
+				if(!userRoleObj.isEmpty() && roleId != 0){
+					String existing_role = userRoleObj.get(0);
+					session.createSQLQuery("update user_role set role_id="+roleId+" where user_id="+id+" and role_id="+existing_role).executeUpdate();
+				}				
+			}
+			else if(roleId != 0){
+				session.save(user);
+				UserRole role=new UserRole();
+				role.setRoleId(roleId);
+				role.setUserId(user.getUser_Id());
+				session.save(role);
+			}
+			else {
+				session.save(user);
+			}
+			return true;
+		} 
+		catch (org.hibernate.exception.ConstraintViolationException e) {
+			e.printStackTrace();
+			throw new DuplicateUser();
+		}
+	}
+	public  List <User> getUserName() throws Exception{
+		List<User> userList=new ArrayList<User>();
+		Session session = HbnUtil.getSession();
+		Transaction tx = session.beginTransaction();
+		List<Object> userObjects = session.createQuery("FROM User").list();
+		for (Iterator<Object> iterator = userObjects.iterator(); iterator.hasNext();) {
+			User user=(User)iterator.next();
+			userList.add(user);
+		}
+		tx.commit();
+		Collections.sort(userList,new Mycomparator());
+		return userList;
+	}
+	public List<User> getUser() throws Exception{
+		List<User> userList=null;
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();
+		Query query=session.createQuery("from User order by user_name");
+		userList=query.list();
+		return userList;
+	}
+	@Override
+	public User getUsernameFromId(int userId) {
+		List<User> userList=null;
+		User user=null;
+		try{
+			Session session=HbnUtil.getSession();
+			session.beginTransaction();
+			Query query=session.createQuery("from User where user_Id="+userId);
+			userList=query.list();
+			Iterator<User> itr=userList.iterator();
+			while(itr.hasNext()){
+				user=itr.next();
+			}
+
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return user;
+	}
+	public boolean deActivateUser(User user) throws Exception{
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();
+		user = (User) session.load(User.class,user.getUser_Id());
+		user.setStatus("InActive");
+		session.update(user);
+		session.getTransaction().commit();
+		return true;
+	}
+	public boolean globalUser(User user) throws Exception{
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();
+		user = (User) session.load(User.class,user.getUser_Id());		
+		boolean globalPass = false;
+		if(user!=null && user.getDefpass().equalsIgnoreCase("timesheet")){	
+			user.setDefpass("NotGlobal");	
+			globalPass = true;
+		}
+		else if(user!=null && !user.getDefpass().equalsIgnoreCase("timesheet") || user.getDefpass() == ""){
+			user.setDefpass("timesheet");
+			globalPass = true;
+		}
+		session.update(user);
+		session.getTransaction().commit();
+		return globalPass;
+	}
+	@Override
+	public User getUser(int id)throws Exception {
+		Session session=HbnUtil.getSession();
+		User user=(User)session.load(User.class,id);
+		return user;
+	}
+
+	@Override
+	public String matchUser(User user, HttpServletRequest request) throws Exception{
+		String status = null;	
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();       
+		List<String> activeList = session.createSQLQuery("select status from users where email='"+user.getMail()+"'").list();		
+		if(activeList!=null && !activeList.isEmpty()){
+			status = activeList.get(0);
+		}
+		if(status!=null && status.equalsIgnoreCase("Active")){
+			List<Object[]> list = session.createSQLQuery("select user_name,user_id from users where email='"+user.getMail()+"' and (password='"+user.getPassWord()+"' or defpass='"+user.getPassWord()+"')").list();
+			String userName = null;
+			if(list!=null && !list.isEmpty()){
+				Object[] obj = list.get(0);
+				userName = (String)obj[0];
+				int user_id  = (Integer)obj[1];
+				HttpSession session1 = request.getSession();
+				session1.setAttribute("user_id", user_id);
+				session1.setAttribute("userName", "Welcome, "+userName);
+				String sql2 ="select distinct(role.role_name) from role inner join user_role on role.role_id= (select role_id from user_role where user_role.user_id=(select users.user_id from users where email='"+user.getMail()+"' and (password='"+user.getPassWord()+"' or defpass='"+user.getPassWord()+"')));";
+				try{
+					status = (String)session.createSQLQuery(sql2).list().get(0);
+				}
+				catch (IndexOutOfBoundsException e){
+					return status = "errorOnAddUser";
+				}
+				return status;
+			}	
+			else{
+				status=null;  // User is active but password not matches with DB password.
+			}
+		}
+		session.getTransaction().commit();
+		return status;
+	}
+	@Override
+	public String storePassword(User user)  throws Exception{
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();
+		String status = null;       
+		if(session.createQuery("from User where email='"+user.getMail()+"'").list()!=null){					
+			List<String> activeList = session.createSQLQuery("select status from users where email='"+user.getMail()+"'").list();
+			if(!activeList.isEmpty()){
+				status = activeList.get(0);
+			}			
+			if(status!=null && status.equalsIgnoreCase("Active")){									
+				SQLQuery query = session.createSQLQuery("update users set password='"+user.getPassWord()+"' where email='"+user.getMail()+"'");
+				query.executeUpdate();
+				session.getTransaction().commit();
+			}
+		}
+		return status;
+	}
+	@Override
+	public List<UserTask> getUserTask(int user_id) throws Exception{
+		Session session=HbnUtil.getSession();
+		session.beginTransaction();
+		ArrayList<UserTask> taskList = new ArrayList<UserTask>();
+		Map<String, String> getCurrentAndPrevoiusMonthDate = TimeUtility.getCurrentAndPrevoiusMonthDate();
+		String current_month_date = getCurrentAndPrevoiusMonthDate.get("currentMonth");
+		String previous_month_date = getCurrentAndPrevoiusMonthDate.get("previousMonth");
+		String sql = "select et.task_date, SEC_TO_TIME(SUM(TIME_TO_SEC(et.time))) as time,et.status from employee_task_detail et where "
+				+"(et.user_id="+user_id+" and et.task_date BETWEEN '"+previous_month_date+"' AND '"+current_month_date+"') group by et.task_date order by task_date DESC";
+		List list = session.createSQLQuery(sql).list();
+		Iterator<Object[]> iterator = list.iterator();
+		taskListMessage = new ArrayList<String>();
+		UserTask userTask = null;
+		DateFormat myFormat = new SimpleDateFormat("yyyy-MM-dd");
+		DateFormat fr1 = new SimpleDateFormat("MM/dd/yyyy");
+		while(iterator.hasNext()) {
+			userTask = new UserTask();
+			Object[] obj = (Object[]) iterator.next();		 
+			Date cd = (Date)obj[0];
+			String formated_date = myFormat.format(cd);
+			List<String> statusList = session.createSQLQuery("select status from employee_task_detail where user_id="+user_id+" and task_date='"+formated_date+"'").list();
+			if(!statusList.isEmpty() && statusList.contains("Public holiday")){
+				userTask.setStatus("Public holiday");
+			}
+			else if(statusList.contains("Half Day")){
+				userTask.setStatus("Half Day");
+			}
+			else if(statusList.contains("Leave")){
+				userTask.setStatus("Leave");
+			}
+			else if(statusList.contains("Comp off")){
+				userTask.setStatus("Comp off");
+			}
+			else{
+				userTask.setStatus("");
+			}
+			userTask.setTask_date(fr1.format(cd));			
+			String DBtime = obj[1].toString();
+			userTask.setTime(DBtime.substring(0,DBtime.lastIndexOf(':')));   // MODIFICATION 31-07
+			String time = userTask.getTime();			
+			Date dateFromDB = null;			
+			dateFromDB = fr1.parse(userTask.getTask_date());
+			Calendar cal = GregorianCalendar.getInstance();
+			Date currentMonth = new Date();
+			cal.setTime(currentMonth);
+			String currentMonthAsSting = fr1.format(cal.getTime());
+			cal.set(Calendar.MONTH, cal.get(Calendar.MONTH)-1);
+			String prevMonthAsString = fr1.format(cal.getTime());
+			//System.out.println("nextMonthAsString"+prevMonthAsString);
+			Date currentMonthDate = null;
+			Date prevMonthDate = null;
+			currentMonthDate = fr1.parse(currentMonthAsSting);
+			prevMonthDate = fr1.parse(prevMonthAsString);
+			if(dateFromDB!=null && dateFromDB.getMonth()==currentMonthDate.getMonth()||dateFromDB.getMonth()==prevMonthDate.getMonth()){
+				String lessTime = time.substring(0,time.indexOf(':'));	//MODIFICATION 31-07		
+				if(Double.parseDouble(lessTime)<8 && Double.parseDouble(lessTime) >0){
+					String dtt = userTask.getTask_date();
+					if(!taskListMessage.contains(" "+dtt+" : You worked only for "+time+" hrs.")){
+						taskListMessage.add(" "+dtt+" : You worked only for "+time+" hrs.");
+					}	
+				}
+			}
+			Date myDate = null;
+			myDate = fr1.parse(userTask.getTask_date());
+			if((myDate.getMonth()==new Date().getMonth()|| myDate.getMonth()+1==new Date().getMonth()) && TimeUtility.isDateInCurrentWeek(myDate)){			
+				taskList.add(userTask);	
+			}
+		}
+		List<String> allWeekDaysFromUtility = TimeUtility.getAllDatesForThisWeek();
+		if(!taskList.isEmpty()){
+			List<String> allDatesList = new ArrayList<String>();
+			for (UserTask user_task : taskList) {
+				allDatesList.add(user_task.getTask_date());
+			}
+			for (String weekDays : allWeekDaysFromUtility) {
+				if(!allDatesList.contains(weekDays)){
+					UserTask user_task = new UserTask();
+					user_task.setTask_date(weekDays);
+					user_task.setTime("Not Entered.");
+					user_task.setStatus("");
+					taskList.add(user_task);	
+				}
+			}			
+		}
+		else{
+			for (String weekDays : allWeekDaysFromUtility) {
+				UserTask user_task = new UserTask();
+				user_task.setTask_date(weekDays);
+				user_task.setTime("Not Entered.");
+				user_task.setStatus("");
+				taskList.add(user_task);	
+			}			
+		}
+		Collections.sort(taskList, Collections.reverseOrder(new UserTask()));
+		session.getTransaction().commit();
+		return taskList;
+	}
+	public ArrayList<String> getTaskMessageList() throws Exception{		
+		return this.taskListMessage;
+	}
+
+	@Override
+	public List<User> getAllocatedResources(int userId) {
+		List<User> userList=new ArrayList<User>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			Query query = s1.createSQLQuery("select distinct(u.user_id),u.user_name from users u inner join report_mapping rm where u.user_id=rm.report_map_id and rm.user_id="+userId+" order by u.user_name" );
+			Iterator<String[]> it = query.list().iterator();
+			while (it.hasNext()){
+				User user=new User();
+				Object[] obj = (Object[]) it.next();
+				Integer userIdTemp=(Integer)obj[0];
+				int userIdValue=userIdTemp.intValue();
+				user.setUser_Id(userIdValue);
+				user.setUser_name((String) obj[1]);
+				userList.add(user);
+			}
+			tx.commit();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		return userList;
+	}
+	@Override
+	public List<User> getAllocatedResourcesDetails(int userId, Calendar cal) {
+		List<User> userList=new ArrayList<User>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			Query query = s1.createSQLQuery("select distinct(u.user_id),u.user_name,u.email from users u inner join report_mapping rm where u.user_id=rm.report_map_id and rm.user_id="+userId+" order by u.user_name" );
+			Iterator<String[]> it = query.list().iterator();
+			while (it.hasNext()){
+				User user=new User();
+				Object[] obj = (Object[]) it.next();
+				Integer userIdTemp=(Integer)obj[0];
+				int userIdValue=userIdTemp.intValue();
+				user.setUser_Id(userIdValue);
+				user.setUser_name((String) obj[1]);
+				user.setMail(obj[2].toString());
+				Query q1 = s1.createQuery("Select u.exit_date from User u where u.user_Id="+userIdValue+"");
+				List<Date> exitList = q1.list();
+				if(exitList.get(0)!=null){
+					Date exitDate = exitList.get(0);
+					Calendar calendar1 = Calendar.getInstance(); // Setting Exit_Date to this Calendar.			
+					calendar1.setTime(exitDate);
+					calendar1.set(Calendar.HOUR_OF_DAY, 23);
+					calendar1.set(Calendar.MINUTE, 59);
+					calendar1.set(Calendar.SECOND, 59);
+					// Checking current date is before(less than) relieving date?
+					if(cal.before(calendar1)){
+						userList.add(user);
+					}
+					else if(cal.equals(calendar1)){						
+						userList.add(user);
+					}
+				}
+				else{
+					userList.add(user);
+				}
+			}
+			tx.commit();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		return userList;
+	}
+	@Override
+	public boolean changePassword(User user, String newPassword)throws Exception {
+		boolean b=false;
+		try {
+			Session session=HbnUtil.getSession();
+			User user2=(User)session.get(User.class,user.getUser_Id());
+			if(user2.getPassWord().equals(user.getPassWord())){
+				session.beginTransaction();
+				user2.setPassWord(newPassword);
+				session.update(user2);
+				session.getTransaction().commit();
+				b=true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception();
+		}
+		return b;
+	}
+	@Override
+	public List<List<Report>> getUserReportAllocation(int userId) throws Exception {
+		List<Report> allocatedList=new ArrayList<Report>();
+		List<Report> unallocatedList=new ArrayList<Report>();
+		List<List<Report>> combinedList=new ArrayList<List<Report>>();
+		String allocatedQueryString="select user_name,user_id  from users where user_id  in( select u.user_id from users u inner join report_mapping rm on u.user_id=rm.report_map_id and rm.user_id="+userId+")"; 
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		Query allocatedQuery = s1.createSQLQuery(allocatedQueryString);
+		Iterator it1=allocatedQuery.list().iterator();
+		while (it1.hasNext()) {
+			Report report=new Report();
+			Object[] obj = (Object[]) it1.next();
+			String userName=(String)obj[0];
+			Integer  userIdValue=(Integer)obj[1];
+			int userIdValue1=userIdValue.intValue();
+			report.setUserName(userName);
+			report.setUserId(userIdValue1);
+			allocatedList.add(report);
+		}
+		String unallocatedQueryString="select user_name,user_id  from users where user_id not in( select u.user_id from users u inner join report_mapping rm on u.user_id=rm.report_map_id and rm.user_id="+userId+")";
+		Query unallocatedQuery = s1.createSQLQuery(unallocatedQueryString);
+		Iterator it2=unallocatedQuery.list().iterator();
+		while (it2.hasNext()) {
+			Report report=new Report();
+			Object[] obj = (Object[]) it2.next();
+			String userName=(String)obj[0];
+			Integer  userIdValue=(Integer)obj[1];
+			int userIdValue1=userIdValue.intValue();
+			report.setUserName(userName);
+			report.setUserId(userIdValue1);
+			unallocatedList.add(report);
+		}
+		combinedList.add(allocatedList);
+		combinedList.add(unallocatedList);
+		return combinedList;
+	}
+
+	// Retrieving Contact from DB and sending list 
+	@Override
+	public List<Object> getContactDetails(List<User> allocatedUserList) throws Exception {		
+		List<Object> masterList = new ArrayList<Object>();		
+		Session s1 = HbnUtil.getSession();
+		s1.beginTransaction();
+		SQLQuery sqlQuery =  s1.createSQLQuery("SELECT contact_no,team,apo_mang,sk_id FROM contact where user_id= :user_id");
+		for (User user : allocatedUserList) {
+			String userName = user.getUser_name();
+			int userId = user.getUser_Id();
+			List<Object> list = new ArrayList<Object>();
+			list.add(userName);
+			sqlQuery.setParameter("user_id", userId);
+			List<Object[]> listContact = sqlQuery.list();
+			Iterator<Object[]> itr = listContact.iterator();
+			String[] conDetail = new String[3];
+			String team = "";
+			String manager = "";
+			String sky ="";
+			int count = 0;
+			if(!listContact.isEmpty() && listContact.size()==2){
+				while (itr.hasNext()){
+					Object[] con = (Object[])itr.next();					  
+					conDetail[count] = (String)con[0];
+					team = (String) con[1];
+					manager = (String) con[2];
+					sky = (String) con[3];
+					count++;
+				}
+				list.add(conDetail);
+				list.add(team);
+				list.add(manager);
+				list.add(sky);
+			}		
+			else if(!listContact.isEmpty()){					
+				if(itr.hasNext()){
+					Object[] con = (Object[])itr.next();					  
+					conDetail[0] = (String)con[0];
+					team = (String) con[1];
+					manager = (String) con[2];
+					sky = (String) con[3];
+				}
+				list.add(conDetail);
+				list.add(team);
+				list.add(manager);
+				list.add(sky);
+			}												
+			masterList.add(list);			
+		}	
+		s1.getTransaction().commit();
+		s1.close();
+		return masterList;
+	}
+
+	@Override
+	public List<Role> getAllRoles() throws Exception {
+		Session s1 = HbnUtil.getSession();
+		s1.beginTransaction();
+		List<Role> roleList  = s1.createQuery("from Role").list();		
+		return roleList;
+	}
+
+	@Override
+	public List<String> getTeamFromContact() throws Exception {
+		Session s1 = HbnUtil.getSession();
+		s1.beginTransaction();
+		String sql = "select distinct(team) from contact con inner join users u on con.user_id=u.user_id";		
+		List<String> conList = s1.createSQLQuery(sql).list();				
+		return conList;
+	}
+
+	@Override
+	public List<User> getAllocatedResourcesTeamWise(int userId, String team) throws Exception {
+		List<User> userList=new ArrayList<User>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			Query query = s1.createSQLQuery("select distinct(u.user_id),u.user_name from users u inner join report_mapping rm, contact con where u.user_id=rm.report_map_id and u.user_id=con.user_id  and (rm.user_id="+userId+" and team='"+team+"') order by u.user_name ");
+			Iterator<String[]> it = query.list().iterator();
+			while (it.hasNext()){
+				User user=new User();
+				Object[] obj = (Object[]) it.next();
+				Integer userIdTemp=(Integer)obj[0];
+				int userIdValue=userIdTemp.intValue();
+				user.setUser_Id(userIdValue);
+				user.setUser_name((String) obj[1]);
+				userList.add(user);
+			}
+			tx.commit();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		return userList;
+	}
+
+	@Override
+	public String getUserRole(int userId) throws Exception {
+		String role = "";
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		Query q1 = s1.createSQLQuery("SELECT role_name FROM role r inner join user_role u on r.role_id=u.role_id where u.user_id="+userId+"");
+		List<String> list = q1.list();
+		if(!list.isEmpty()){
+			role = list.get(0);
+		}	
+		tx.commit();
+		return role;
+	}
+
+	@Override
+	public List<Appraisal> getObjective(int user_id, String month) throws Exception {
+		// Added for getting Objective for User.
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		List<Appraisal> list = new ArrayList<Appraisal>();
+		try{
+			String qr = "from Appraisal app where (app.start_date<'"+month+"' and app.end_date>'"+month+"') and user_id="+user_id+"";
+			List<Appraisal> objList = s1.createQuery(qr).list();
+			Iterator<Appraisal> itr = objList.iterator();
+			if(itr.hasNext()) {
+				Appraisal objApp =  itr.next();
+				if(objApp.getComm_obj()==null){
+					objApp.setComm_obj("");
+				}
+				if(objApp.getSpec_obj()==null){
+					objApp.setSpec_obj("");
+				}
+				list.add(objApp);
+			}
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		tx.commit();
+		s1.close();
+		return list;
+	}
+
+	@Override
+	public List<User> getAllocatedResourcesBasedOnExitDate(int userId, Calendar cal) throws Exception {
+		List<User> userList=new ArrayList<User>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			Query query = s1.createSQLQuery("select distinct(u.user_id),u.user_name,u.email from users u inner join " +
+					"report_mapping rm where u.user_id=rm.report_map_id and rm.user_id="+userId+" order by u.user_name" );
+			Iterator<String[]> it = query.list().iterator();
+			while (it.hasNext()){
+				User user=new User();
+				Object[] obj = (Object[]) it.next();
+				Integer userIdTemp=(Integer)obj[0];
+				int userIdValue=userIdTemp.intValue();
+				user.setUser_Id(userIdValue);
+				user.setUser_name((String) obj[1]);
+				user.setMail(obj[2].toString());
+				Query q1 = s1.createQuery("Select u.exit_date from User u where u.user_Id="+userIdValue+"");
+				List<Date> exitList = q1.list();
+				if(exitList.get(0)!=null){
+					Date exitDate = exitList.get(0);
+					Calendar calendar1 = Calendar.getInstance(); // Setting Exit_Date to this Calendar.			
+					calendar1.setTime(exitDate);  
+					calendar1.set(Calendar.DAY_OF_MONTH, calendar1.getActualMaximum(Calendar.DAY_OF_MONTH));  
+					calendar1.set(Calendar.HOUR_OF_DAY, 23);
+					calendar1.set(Calendar.MINUTE, 59);
+					calendar1.set(Calendar.SECOND, 59);
+					if(cal.before(calendar1)){
+						userList.add(user);
+					}
+					else if(cal.equals(calendar1)){						
+						userList.add(user);
+					}
+				}
+				else{
+					userList.add(user);
+				}
+			}
+			tx.commit();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		return userList;
+	}
+
+	@Override
+	public  List<User> getUserNamesMappedUnderAccountManager() throws Exception {
+		// Get all resources under account manager
+		List<User> userList=new ArrayList<User>();
+		Session session = HbnUtil.getSession();
+		Transaction tx = session.beginTransaction();
+		List<Object> userObjects = session.createSQLQuery("select u.user_id from users u inner join user_role ur on u.user_id=ur.user_id where ur.role_id=1005 and user_name like '%Hem%'").list();
+		if(!userObjects.isEmpty()){
+			Iterator<Object> itr = userObjects.listIterator();
+			if (itr.hasNext()) {
+				int user_id = (Integer)itr.next();
+				List<Object[]> listOfResources = session.createSQLQuery("select u.user_name ,u.email from users u inner join report_mapping r on u.user_id=r.report_map_id where r.user_id="+user_id+" order by u.user_name").list();
+				if(!listOfResources.isEmpty()){
+					Iterator<Object[]> objArray= listOfResources.iterator();
+					while (objArray.hasNext()) {
+						Object[] objects = (Object[]) objArray.next();
+						User u1 = new User();
+						u1.setUser_name(objects[0].toString());
+						u1.setMail(objects[1].toString());
+						userList.add(u1);						
+					}
+				}
+
+			}
+		}		
+		else{
+			logger.info("Error while retreiving resources mapped under account manager.");	
+		}
+		tx.commit();
+		return userList;
+	}
+
+	@Override
+	public List<User> getAllocatedResourcesBasedOnExitDateAndLocation(int userId, Calendar cal, String location) throws Exception {
+		// Getting mapped resource based on Resource Location.
+		List<User> userList=new ArrayList<User>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			Query query = s1.createSQLQuery("select distinct(u.user_id),u.user_name from users u inner join report_mapping rm "
+					+" where u.user_id=rm.report_map_id and rm.user_id="+userId+" order by u.user_name" );
+			Iterator<String[]> it = query.list().iterator();
+			while (it.hasNext()){
+				User user=new User();
+				Object[] obj = (Object[]) it.next();
+				Integer userIdTemp=(Integer)obj[0];
+				int userIdValue=userIdTemp.intValue();
+				user.setUser_Id(userIdValue);
+				user.setUser_name((String) obj[1]);
+				Query q1 = s1.createQuery("Select u.exit_date from User u where u.user_Id="+userIdValue+"");
+				Query q2 = s1.createSQLQuery("Select location from contact where user_id="+userIdValue+" and location='"+location+"' group by user_id");				
+				List<Object> resourceLoc = q2.list();
+				List<Date> exitList = q1.list();
+				if(exitList.get(0)!=null){
+					Date exitDate = exitList.get(0);
+					Calendar calendar1 = Calendar.getInstance(); // Setting Exit_Date to this Calendar.			
+					calendar1.setTime(exitDate);  
+					calendar1.set(Calendar.DAY_OF_MONTH, calendar1.getActualMaximum(Calendar.DAY_OF_MONTH));  
+					calendar1.set(Calendar.HOUR_OF_DAY, 23);
+					calendar1.set(Calendar.MINUTE, 59);
+					calendar1.set(Calendar.SECOND, 59);
+					if(!resourceLoc.isEmpty()){
+						if(cal.before(calendar1)){
+							userList.add(user);
+						}
+						else if(cal.equals(calendar1)){						
+							userList.add(user);
+						}
+					}
+				}
+				else{
+					if(!resourceLoc.isEmpty()){
+						userList.add(user);
+					}
+				}
+			}
+			tx.commit();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		return userList;
+	}
+	@Override
+	public void saveFeedbackInfo(int user_Id, ClientFeedback c_feedback) {
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		User user = new User();
+		user.setUser_Id(user_Id);
+		c_feedback.setUser(user);
+		c_feedback.setViewed_users("none");
+		s1.save(c_feedback);
+		s1.close();
+		tx.commit();
+	}
+	@Override
+	public List<ClientFeedback> getAllAddedFeedback(Timestamp ts1, Timestamp ts2, int user_id) {
+		List<ClientFeedback> updatedFeedbackList = new ArrayList<ClientFeedback>();
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			List<ClientFeedback> feedbackList = s1.createQuery("from ClientFeedback cf where cf.time_stamp BETWEEN '"+ts2+"' and '"+ts1+"'").list(); 
+			for (ClientFeedback clientFeedback : feedbackList) {
+				ClientFeedback cf = (ClientFeedback) s1.get(ClientFeedback.class, clientFeedback.getFeedbackId());
+				if(cf != null){
+					if(!cf.getViewed_users().contains(Integer.toString(user_id))){
+						updatedFeedbackList.add(clientFeedback);
+					}
+				}
+			}
+			s1.close();
+			tx.commit();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return updatedFeedbackList;
+	}
+	@Override
+	public String setViewStatus(List<Integer> idList, int user_id) {
+		// Setting viewStatus for shared feedback.
+		String status = "Error while setting status";
+		try{
+			Session s1 = HbnUtil.getSession();
+			Transaction tx = s1.beginTransaction();
+			for (Integer id : idList) {
+				ClientFeedback cf = (ClientFeedback) s1.get(ClientFeedback.class, id);
+				if(cf != null){
+					String viewed_users = cf.getViewed_users();					
+					if(viewed_users != null && viewed_users.trim().equalsIgnoreCase("none")){
+						cf.setViewed_users(Integer.toString(user_id));
+					}
+					else if(!viewed_users.contains(Integer.toString(user_id))){
+						cf.setViewed_users(viewed_users+","+Integer.toString(user_id));
+					}
+					s1.update(cf);
+					s1.flush();
+				}
+			}	
+			s1.close();
+			tx.commit();
+			status = "Status updated successfully.";
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return status;
+	}
+	@Override
+	public Map<Object, Object> getUserDetailForUserId(int userId)throws Exception {
+		// Retrieving User info
+		Map<Object, Object> userDetailInMap = new HashMap<Object, Object>();
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		try{
+			User user = (User) s1.get(User.class, userId);
+			List<Object[]> contactList = s1.createSQLQuery("select * from contact con where con.user_id="+userId+" order by con.id").list();
+			List<Integer> userRole = s1.createSQLQuery("select r.role_id from role r inner join user_role ur on ur.role_id=r.role_id where ur.user_id="+userId).list();
+			Iterator<Object[]> itr = contactList.iterator();
+			ModelContact m_con = new ModelContact();
+			int i = 0;
+			while (itr.hasNext()) {
+				Object[] contactObj = (Object[]) itr.next();
+				if(i == 0){
+					m_con.setContact_no1(contactObj[2].toString());
+				}
+				else if(i ==1) {
+					m_con.setContact_no2(contactObj[2].toString());
+				}
+				m_con.setTeam(contactObj[3].toString());
+				m_con.setApollo_manager(contactObj[4].toString());
+				m_con.setSkype_id(contactObj[5].toString());
+				m_con.setLocation(contactObj[6].toString());
+				i++;
+			}
+			userDetailInMap.put("UserDetail", user);
+			userDetailInMap.put("UserContact", m_con);
+			if(!userRole.isEmpty()){
+				userDetailInMap.put("UserRole", userRole.get(0));	
+			}
+			tx.commit();
+			s1.close();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception();
+		}
+		return userDetailInMap;
+	}
+	@Override
+	public String saveResourceInProfile(User u, String user_role_id, List<Contact> conList) throws Exception {
+		// save resource information after update
+		String status = "Error while updating resource detail.";
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		try{
+			User user = (User) s1.get(User.class, u.getUser_Id());
+			if(user != null){
+				user.setUser_name(u.getUser_name());
+				user.setPassWord(u.getPassWord());
+				user.setDefpass(u.getDefpass());
+				user.setStatus(u.getStatus());
+				user.setExit_date(u.getExit_date());
+				user.setFreeze_timesheet(u.getFreeze_timesheet());
+				user.setApollo_id(u.getApollo_id());
+				s1.update(user);
+				List<String> userRoleObj = s1.createSQLQuery("select role_id from user_role where user_id="+u.getUser_Id()).list();
+				if(!userRoleObj.isEmpty()){
+					String existing_role = userRoleObj.get(0);
+					s1.createSQLQuery("update user_role set role_id="+user_role_id+" where user_id="+u.getUser_Id()+" and role_id="+existing_role).executeUpdate();
+				}				
+				s1.createSQLQuery("delete from contact  where user_id="+u.getUser_Id()).executeUpdate();
+				for (Contact contact : conList) {
+					s1.save(contact);
+				}	
+			}
+			status = u.getUser_name()+"'s account has been updated successfully.";
+			tx.commit();
+			s1.close();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e);
+			throw new Exception();
+		}
+		return status;
+	}
+	@Override
+	public String getUserRoleId(int uid) {
+		String role_id = "0";
+		Session s1 = HbnUtil.getSession();
+		Transaction tx = s1.beginTransaction();
+		List<String> userRoleObj = s1.createSQLQuery("select role_id from user_role where user_id="+uid).list();
+		if(!userRoleObj.isEmpty()){
+			role_id = userRoleObj.get(0);
+		}
+		tx.commit();
+		s1.close();
+		return role_id;
+	}
+}

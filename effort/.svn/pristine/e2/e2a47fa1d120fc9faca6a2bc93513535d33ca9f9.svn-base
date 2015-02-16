@@ -1,0 +1,218 @@
+package com.calsoft.task.action;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import java.util.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+import com.calsoft.factory.Factory;
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.task.model.Task;
+import com.calsoft.task.service.SaveTaskService;
+import com.calsoft.task.service.factory.SaveTaskServiceFactory;
+import com.calsoft.user.form.UserForm;
+import com.calsoft.user.model.User;
+import com.calsoft.user.service.UserService;
+import com.calsoft.user.service.UserServiceImpl;
+
+
+public class TaskAction extends DispatchAction{
+	UserService userService=null;
+	Task task=new Task();
+	public ActionForward save(ActionMapping mapping,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService=SaveTaskServiceFactory.getSaveTaskService();
+		System.out.println("User id inside save method is:"+request.getParameter("userId"));
+		int userId=Integer.parseInt(request.getParameter("userId"));
+		System.out.println("taskform."+taskForm.getBacklog_id());
+		saveTaskService.saveTask(taskForm);
+		userService=Factory.getUserService();
+		UserForm userForm=userService.getUsernameFromId(userId);
+		String userName=userForm.getUserName();
+		UserForm userformNew=new UserForm();
+		userformNew.setUserId(userId);
+		userformNew.setUserName(userName);
+		List<UserForm> userFormList = userService.getUserNames();
+			Iterator< UserForm> itr=userFormList.iterator();
+			List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+		
+			userFormUpdatedList.add(userformNew);
+		HttpSession session=request.getSession();
+		session.setAttribute("selectedUser", userformNew);
+			while(itr.hasNext())
+			{
+				UserForm userFormValue=itr.next();
+				if(!(userFormValue.getUserName().equals(userName)))
+						{
+					userFormUpdatedList.add(userFormValue);
+						}
+			}
+			
+			request.setAttribute("list",userFormUpdatedList);
+		
+		return mapping.findForward("success");
+		
+	}
+	
+	public ActionForward saveEdit(ActionMapping mapping,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService=SaveTaskServiceFactory.getSaveTaskService();
+		
+		System.out.println("taskform."+taskForm.getId());
+		System.out.println("taskform date is:-----"+taskForm.getTask_date());
+		System.out.println("taskform. back log id is:"+taskForm.getBacklog_id());
+		saveTaskService.editsaveTask(taskForm);
+		List<UserForm> userFormList = userService.getUserNames();
+		Iterator< UserForm> itr=userFormList.iterator();
+		List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+		HttpSession session=request.getSession();
+		UserForm userFormNew=null;
+		if(session.getAttribute("selectedUser")!=null)
+		{
+			userFormNew=(UserForm)session.getAttribute("selectedUser");
+		}
+	userFormUpdatedList.add(userFormNew);
+	
+		while(itr.hasNext())
+		{
+			UserForm userFormValue=itr.next();
+			if(!(userFormValue.getUserName().equals(userFormNew.getUserName())))
+					{
+				userFormUpdatedList.add(userFormValue);
+					}
+		}
+		
+		request.setAttribute("list",userFormUpdatedList);
+			return mapping.findForward("success");
+	}
+	
+	public ActionForward getTaskDeatils(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+	       TaskForm taskForm = (TaskForm) form;
+		   List<TaskForm> tList = null;
+		  
+		  		try {
+			
+		   int userId=taskForm.getUserId();
+		   System.out.println("User_id=-----"+userId);
+		   	SaveTaskService saveTaskService = 
+				SaveTaskServiceFactory.getSaveTaskService();
+			System.out.println("savetask service object is:"+saveTaskService);
+		tList = saveTaskService.getTaskDetails(userId);
+		System.out.println("task list detail size is:"+tList.size());
+		userService=Factory.getUserService();
+		//get the userId from user name and set as a first element in the list
+	UserForm userForm=userService.getUsernameFromId(userId);
+	String userName=userForm.getUserName();
+	UserForm userformNew=new UserForm();
+	userformNew.setUserId(userId);
+	userformNew.setUserName(userName);
+	
+		List<UserForm> userFormList = userService.getUserNames();
+		Iterator< UserForm> itr=userFormList.iterator();
+		List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+	
+		userFormUpdatedList.add(userformNew);
+	HttpSession session=request.getSession();
+	session.setAttribute("selectedUser", userformNew);
+		while(itr.hasNext())
+		{
+			UserForm userFormValue=itr.next();
+			if(!(userFormValue.getUserName().equals(userName)))
+					{
+				userFormUpdatedList.add(userFormValue);
+					}
+		}
+		
+		request.setAttribute("list",userFormUpdatedList);
+		request.setAttribute("tList", tList);
+		} catch (Exception e) {
+			System.out.println("Exception occur in execute(): " + e);
+		}
+		return mapping.findForward("success");
+	}
+	
+	
+	
+	public ActionForward editTask(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+	       TaskForm taskForm = (TaskForm) form;
+	       int id = Integer.parseInt(request.getParameter("id"));
+			System.out.println("taskId= " + id);
+			
+			SaveTaskService saveTaskService1 = 
+					SaveTaskServiceFactory.getSaveTaskService();
+		List<TaskForm> taskFormList=saveTaskService1.editTask(id);
+		Iterator<TaskForm> itr1=taskFormList.iterator();
+		
+		TaskForm taskformValue=null;
+		while(itr1.hasNext())
+		{
+			taskformValue=itr1.next();
+		}
+	    		
+System.out.println("user id inside edit option is:"+taskformValue.getUserId());
+	       request.setAttribute("taskList", taskformValue);
+	   
+	       System.out.println(" Id value is edit............"+taskformValue.getId());
+	       userService=Factory.getUserService();
+			List<UserForm> userFormList = userService.getUserNames();
+			request.setAttribute("list", userFormList);
+			
+	       return mapping.findForward("prepareToEdit");
+	}
+	
+	
+	public ActionForward deleteTask(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+		  List<TaskForm> tList = null;
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService = 
+				SaveTaskServiceFactory.getSaveTaskService();
+		int id = Integer.parseInt(request.getParameter("id"));
+		System.out.println("taskId= " + id);
+		boolean wIdList = saveTaskService.doDelete(id);
+		System.out.println("delete wIdList= " + wIdList);
+		SaveTaskService saveTaskService1 = 
+				SaveTaskServiceFactory.getSaveTaskService();
+		try {
+			BeanUtils.copyProperties(task, taskForm);
+		} catch (Exception e) {
+			System.out.println("Exception occur in execute(): " + e);
+		}
+		tList = saveTaskService.getTaskDetails(taskForm.getUserId());
+		userService=Factory.getUserService();
+		List<UserForm> userFormList = userService.getUserNames();
+		Iterator< UserForm> itr=userFormList.iterator();
+		List<UserForm> userFormUpdatedList=new ArrayList<UserForm>();
+		HttpSession session=request.getSession();
+		UserForm userFormNew=null;
+		if(session.getAttribute("selectedUser")!=null)
+		{
+			userFormNew=(UserForm)session.getAttribute("selectedUser");
+		}
+	userFormUpdatedList.add(userFormNew);
+	
+		while(itr.hasNext())
+		{
+			UserForm userFormValue=itr.next();
+			if(!(userFormValue.getUserName().equals(userFormNew.getUserName())))
+					{
+				userFormUpdatedList.add(userFormValue);
+					}
+		}
+		
+		request.setAttribute("list",userFormUpdatedList);
+			request.setAttribute("tList", tList);
+		return mapping.findForward("success");
+	}
+}

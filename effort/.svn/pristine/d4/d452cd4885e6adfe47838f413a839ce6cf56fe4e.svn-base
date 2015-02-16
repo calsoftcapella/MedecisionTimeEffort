@@ -1,0 +1,1424 @@
+<%@page import="java.util.Collections"%>
+<%@page import="java.util.Date"%>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.text.DateFormat"%>
+<%@page import="java.util.List"%>
+<%@page import="java.util.HashSet"%>
+<%@page import="java.util.StringTokenizer"%>
+<%@page import="com.calsoft.task.form.TaskForm"%>
+<%@page import="java.util.GregorianCalendar"%>
+<%@page import="java.util.Calendar"%>
+<%@page import="java.util.Iterator"%>
+<%@page import="java.util.ArrayList"%>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+	pageEncoding="ISO-8859-1"%>
+<%@taglib uri="http://struts.apache.org/tags-bean" prefix="bean"%>
+<%@taglib uri="http://struts.apache.org/tags-logic" prefix="logic"%>
+<%@taglib uri="http://struts.apache.org/tags-html" prefix="html"%>
+<%@taglib uri="http://displaytag.sf.net" prefix="display"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<style type="text/css">
+body {
+	font: normal 14px Calibri, Calibri, Calibri;
+}
+</style>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>CalsoftLabs/Timesheet/Time Entry Page</title>
+<style type="text/css">
+table.sortable1 {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	align: center;
+}
+
+table.sortable {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	border-width: 1px;
+	border-color: #999999;
+	align: center;
+	border-collapse: collapse;
+}
+table.sortable thead {
+    cursor: pointer;
+}
+table.sortable th {
+	background-color: #A5A1A0;
+	border-width: 1px;
+	padding: 0px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+table.sortable tr {
+	background-color: #FFFFFF;
+}
+
+table.sortable td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #a9c6c9;
+}
+
+table.sortable tr:nth-child(odd) {
+	background-color: #eee;
+}
+
+table.sortable tr:nth-child(even) {
+	background-color: #fff;
+}
+
+table.sortable input {
+	border-color: #3C3CFF;
+}
+
+table.sortable textarea {
+	border-color: #3C3CFF;
+}
+
+table.sortable select {
+	border-color: #3C3CFF;
+}
+</style>
+<!-- <script type="text/javascript">
+var cX = 0;
+var cY = 0;
+var rX = 0;
+var rY = 0;
+function UpdateCursorPosition(e) {
+	cX = e.pageX;
+	cY = e.pageY;
+}
+function UpdateCursorPositionDocAll(e) {
+	cX = event.clientX;
+	cY = event.clientY;
+}
+if (document.all) {
+	document.onmousemove = UpdateCursorPositionDocAll;
+} else {
+	document.onmousemove = UpdateCursorPosition;
+}
+function AssignPosition(d) {
+	if (self.pageYOffset) {
+		rX = self.pageXOffset;
+		rY = self.pageYOffset;
+	} else if (document.documentElement
+			&& document.documentElement.scrollTop) {
+		rX = document.documentElement.scrollLeft;
+		rY = document.documentElement.scrollTop;
+	} else if (document.body) {
+		rX = document.body.scrollLeft;
+		rY = document.body.scrollTop;
+	}
+	if (document.all) {
+		cX += rX;
+		cY += rY;
+	}
+	d.style.left = (cX + 10) + "px";
+	d.style.top = (cY + 10) + "px";
+}
+function HideText(d) {
+	if (d.length < 1) {
+		return;
+	}
+	document.getElementById(d).style.display = "none";
+}
+function ShowText(d) {
+	if (d.length < 1) {
+		return;
+	}
+	var dd = document.getElementById(d);
+	AssignPosition(dd);
+	dd.style.display = "block";
+}
+function ReverseContentDisplay(d) {
+	if (d.length < 1) {
+		return;
+	}
+	var dd = document.getElementById(d);
+	AssignPosition(dd);
+	if (dd.style.display == "none") {
+		dd.style.display = "block";
+	} else {
+		dd.style.display = "none";
+	}
+}
+</script>
+<script type="text/javascript" src="js/sortable.js"></script>        Use this script to sort your table    -->  
+<script type="text/javascript">
+	// Change This Method based on yours Public Holiday.
+	function checkForPublicHoliday() {
+		var selectedDate = $("#popupDatepicker").val();
+		/* var holidayArray = new Array("01/26/2012", "02/20/2012", "03/09/2012", "03/23/2012", "04/06/2012", "05/01/2012", "08/15/2012", "08/20/2012", "08/29/2012", "09/19/2012", "10/02/2012", "10/24/2012", "11/01/2012", "11/14/2012", "12/25/2012"); */
+		var holidayArray = new Array("01/01/2013", "01/14/2013", "01/26/2013",
+				"03/26/2013", "03/29/2013", "04/11/2013", "05/01/2013",
+				"08/09/2013", "08/15/2013", "09/09/2013", "09/16/2013",
+				"10/02/2013", "10/14/2013", "11/01/2013", "12/25/2013");
+		for ( var i = 0; i < holidayArray.length; i++) {
+			var checkDate = holidayArray[i];
+			if (selectedDate == checkDate) {
+				document.getElementById("descId").value = "Today is Public Holiday.";
+			}
+		}
+	}
+</script>
+<script type="text/javascript" src="jquery.js"></script>
+<style type="text/css">
+@import "flora.datepick.css";
+</style>
+<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="jquery.datepick.js"></script>
+<script type="text/javascript">
+	$(function() {
+		$('#popupDatepicker').datepick();
+	});
+</script>
+<script type="text/javascript">
+    function changeDynamicTextBox(object){   	   	    	
+    	var i=object.parentNode.parentNode.rowIndex;  
+     	var idVal = document.getElementById('dailyEntryTable').rows[i].id;
+     	var table = document.getElementById('dailyEntryTable');
+     	var tableTr = table.getElementsByTagName('tr')[i];
+     	var nCell = tableTr.getElementsByTagName('td');        
+     	var status = nCell[1].firstChild.value;
+     	var backLog = nCell[2].firstChild.value;
+     	var taskLog = nCell[3].firstChild.value;
+     	var description_text = nCell[4].firstChild.value;     	
+     	var backLogID = nCell[2].firstChild.id;
+     	var taskLogID = nCell[3].firstChild.id;
+     	var description_textID = nCell[4].firstChild.id;     	     	     	
+     	var timeID = nCell[6].firstChild.id;    	
+     	document.getElementById("ajax_res").innerHTML ="";    	    	    	    	    	
+    	if(description_text=='Please mention the additional date that you worked to take Comp off.'|| description_text=='It is public holiday.'){
+    		document.getElementById(description_textID).value="";
+    	}
+    	if (status == "Leave" || status == "Half Day" || status == "Travel" || status == "Down Time" || status == "Public holiday" ) {
+    		if(backLog==''){
+			   document.getElementById(backLogID).value = 'NA';
+    		}
+    		if(taskLog==''){
+			   document.getElementById(taskLogID).value = 'NA';
+    		}
+    		if(status == "Public holiday"){
+    			document.getElementById(description_textID).value = 'It is public holiday.';
+    			document.getElementById(timeID).value = '9.0';
+    		}
+    		else if(status == "Leave"){
+    			document.getElementById(timeID).value = '9.0';
+    		}
+    		else if(status == "Half Day"){
+    			document.getElementById(timeID).value = '4.0';
+    		}
+			document.getElementById(backLogID).disabled = 'true';
+			document.getElementById(taskLogID).disabled = 'true';
+    	}
+    	else if(status == "Comp off"){
+    		if(backLog==''){
+ 			   document.getElementById(backLogID).value = 'NA';
+     		}
+     		if(taskLog==''){
+ 			   document.getElementById(taskLogID).value = 'NA';
+     		}
+			document.getElementById(backLogID).disabled = 'true';
+			document.getElementById(taskLogID).disabled = 'true';
+			alert("Please get approval email from your onsite lead for Comp offs and send it to Hem. It would be treated as leave if it is not approved by your onsite lead.");
+			document.getElementById(description_textID).value = 'Please mention the additional date that you worked to take Comp off.';			
+    	}
+    	else{
+    		if(backLog==''){
+ 			   document.getElementById(backLogID).value = 'NA';
+     		}
+     		if(taskLog==''){
+ 			   document.getElementById(taskLogID).value = 'NA';
+     		}
+     		if(document.getElementById(timeID).value=='9.0' || document.getElementById(timeID).value=='4.0'){
+     		    document.getElementById(timeID).value = '';
+     		}
+			document.getElementById(backLogID).disabled = false;
+			document.getElementById(taskLogID).disabled = false;
+    	}
+    	document.getElementById(description_textID).focus();
+    }
+	function onDelete(url, currentObj){
+		var table = currentObj.parentNode.parentNode.parentNode;
+		var row = table.getElementsByTagName('tr');	
+		var check = confirm("Do you want to delete the comment ??");
+		if (check == true) {		
+		  $.ajax({
+	      type: "POST",
+	      url: url,
+	      data: "",
+	      success: function(response){
+	    	  if(row.length==2){
+	    		  document.getElementById("dailyEntryTable").deleteRow(1);
+	    		  document.getElementById('dailyEntryTable').style.visibility = "hidden";
+	    	  }
+	    	  else{
+	           	  document.getElementById("dailyEntryTable").deleteRow(currentObj.parentNode.parentNode.rowIndex);
+	    	  }
+	        },
+	      error: function(e){        
+	      }
+	     });}        
+	   }
+</script>
+<script type="text/javascript">
+	function getParsedTime(time){
+		time = time.replace(":", ".");   	
+	    var timeLength = time.length;	
+	    if (timeLength > 4) {
+			if(time.indexOf('.')==1){
+				if(time.charAt(3) == '0' && time.charAt(4)=='0'){
+					time = time.charAt(0)+""+time.charAt(1)+""+time.charAt(2);
+				}
+				else if(time.charAt(4) != '0'){
+				time = time.charAt(0)+""+time.charAt(1)+""+time.charAt(2)+""+time.charAt(3);
+				}
+			}
+			else if(time.indexOf('.')==2){
+				if(time.charAt(0) == '0' && time.charAt(4)=='0'){
+					time = time.charAt(1)+""+time.charAt(2)+""+time.charAt(3);
+				}
+				else if(time.charAt(0) == '0' && time.charAt(4)!='0'){
+					time = time.charAt(1)+""+time.charAt(2)+""+time.charAt(3)+""+time.charAt(4);
+				}
+			}					
+		}
+		else if(timeLength > 3){
+			if(time.indexOf('.')==1){
+				if(time.charAt(3) == '0'){
+					time = time.charAt(0)+""+time.charAt(1)+""+time.charAt(2);
+				}
+			}
+			else if(time.indexOf('.')==2){
+				if(time.charAt(0) == '0'){
+					time = time.charAt(1)+""+time.charAt(2)+""+time.charAt(3);
+				}
+			}
+		}			
+		if(time.indexOf('.')==-1){		
+			if(time.charAt(0) == '0'){
+				time = time.charAt(1)+".0";
+			}
+			else if(time.charAt(0) != '0'){
+				time = time.charAt(0)+""+time.charAt(1)+".0";
+			}
+		}
+		return time;
+	}
+</script>
+<script type="text/javascript">
+   var count = 1;
+     function addRow(tableID)
+		{    	 
+	     document.getElementById('dailyEntryTable').style.visibility = "visible";
+	     document.getElementById('ajax_res').innerHTML= "";
+    	 var tRow = document.getElementById(tableID).insertRow(1);
+     	 tRow.id=count+"id";
+    	 var td1 = tRow.insertCell(0);
+   		 td1.id="td_dt";
+   		 var strHtml1 = "<INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" "
+   		                +" value=\"<%=new SimpleDateFormat("MM/dd/yyyy").format(new Date())%>\" "
+   		                +" STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">";
+   		 td1.innerHTML = strHtml1;
+   		 // create table cell 2
+  		 var td2 = tRow.insertCell(1);
+         td2.id = "td_st";
+         var defaultStatus = document.getElementById('defaultCategory').value;
+         var strHtml2 = "<SELECT NAME=\"status\" id=\"status"+count+"\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+         +"<option value=\"\">Select</option>"
+         +"<option value=\"Code Review\">Code Review</option>"
+         +"<option value=\"Comp off\">Comp off</option>"
+         +"<option value=\"Development\">Development</option>"
+         +"<option value=\"Down Time\">Down Time</option>"
+         +"<option value=\"Half Day\">Half Day</option>"
+         +"<option value=\"Leave\">Leave</option>"
+         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+         +"<option value=\"Meeting\">Meeting</option>"
+         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+         +"<option value=\"Project Management\">Project Management</option>"																				
+         +"<option value=\"Public holiday\">Public holiday</option>"
+         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+         +"<option value=\"Team Activity\">Team Activity</option>"
+         +"<option value=\"Testing\">Testing</option>"														
+         +"<option value=\"Training\">Training</option>"													
+         +"<option value=\"Travel\">Travel</option>"
+         +"</SELECT>";         
+         td2.innerHTML = strHtml2;         
+         var selectOption = document.getElementById("status"+count);
+         for (var i=0; i<selectOption.length; i++){
+           if(selectOption.options[i].value==defaultStatus){
+        	   selectOption.options[i].selected="true";
+           }
+         }      
+         // create table cell 3
+         var td3 = tRow.insertCell(2);
+         td3.id="td_back";
+         var strHtml3 = "<INPUT TYPE=\"text\" id=\"backlog_id"+count+"\" value=\"NA\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" "
+                             +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">";
+         td3.innerHTML = strHtml3;
+         // create table cell 4
+         var td4 = tRow.insertCell(3);
+         td4.id="td_task";
+    	 var strHtml4 = "<INPUT TYPE=\"text\" id=\"task_id"+count+"\" value=\"NA\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" "
+    	                 +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" >";
+    	 td4.innerHTML = strHtml4;
+    	 // create table cell 5
+    	 var td5 = tRow.insertCell(4);
+    	 td5.id="td_des";
+    	 var strHtml5 = "<textarea name=\"task_description\" id=\"des_id"+count+"\" rows=\"2\" cols=\"2\" "
+    	                +" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></textarea>";
+    	 td5.innerHTML = strHtml5;
+    	 // create table cell 6
+    	 var td6 = tRow.insertCell(5);
+    	 td6.id="td_work_status"+count;
+    	 var strHtml6 = "<input type=\"radio\"  name=\"work_status"+count+"\" value=\"office\" checked> Office"
+	                       +"<input type=\"radio\"  name=\"work_status"+count+"\" value=\"home\">Home";
+    	 td6.innerHTML = strHtml6;
+    	 // create table cell 7
+    	 var td7 = tRow.insertCell(6);
+    	 var strHtml7 = "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time"+count+"\"  SIZE=\"5\" MAXLENGTH=\"5\" value=\"\" "
+    	                  +" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">";
+     	 td7.innerHTML = strHtml7;
+    	 // create table cell 8
+    	 var td8 = tRow.insertCell(7);
+    	 var strHtml8 = "<img alt=\"1px\" src=\"img/save.gif\" id=\"edit"+count+"\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjax(this)\" "
+    	                 +" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\">";   	
+    	 td8.innerHTML = strHtml8;
+    	 
+    	 var td9 = tRow.insertCell(8);
+    	 var strHtml9 = "<img alt=\"1\" src=\"img/minus.png\" SIZE=\"5\" title=\"Delete\" onClick='deleteRow(this);' "
+    	                 +" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\">";   	
+    	 td9.innerHTML = strHtml9;
+    	 document.getElementById("des_id"+count).focus();
+    	 document.getElementById("popupDatepicker").value[0]=$('#popupDatepicker').datepick();
+    	 count++;
+
+     } 
+   	 function deleteRow(currentObject){
+           try{                
+               var i=currentObject.parentNode.parentNode.rowIndex;
+               var table = currentObject.parentNode.parentNode.parentNode;
+       		   var row = table.getElementsByTagName('tr');	
+               if(row.length==2){
+            	  document.getElementById("dailyEntryTable").deleteRow(i);
+            	  document.getElementById('dailyEntryTable').style.visibility = "hidden";
+               }
+               else{
+                  document.getElementById('dailyEntryTable').deleteRow(i);    
+               }
+             }
+             catch(e){
+                 alert(e);
+             }
+             count--;
+     }
+   	 function callAjax(currentObject){  
+   		document.getElementById("ajax_res").innerHTML =""; 
+     	var i=currentObject.parentNode.parentNode.rowIndex;  
+     	var idVal = document.getElementById('dailyEntryTable').rows[i].id;
+     	var table = document.getElementById('dailyEntryTable');
+     	var tableTr = table.getElementsByTagName('tr')[i];
+     	var nCell = tableTr.getElementsByTagName('td');        
+     	var date = nCell[0].firstChild.value;
+     	var status = nCell[1].firstChild.value;
+     	var backlog_id = nCell[2].firstChild.value;
+     	var task_id = nCell[3].firstChild.value;
+     	var task_description = nCell[4].firstChild.value;     	
+     	var work_status = '';     	
+     	var radioLength = nCell[5].getElementsByTagName('input').length;    	
+     	for (var p = 0; p < radioLength; p++){
+     		if(nCell[5].getElementsByTagName('input')[p].checked){
+     			work_status = nCell[5].getElementsByTagName('input')[p].value;
+     		}
+     	}
+     	var capitalizeWorkStatus = null;
+     	if(work_status=='home'){
+     		capitalizeWorkStatus = 'Home';
+     	}
+     	else if(work_status=='office'){
+     		capitalizeWorkStatus = 'Office';
+     	}      	
+     	var timeValue = nCell[6].firstChild.value; 
+     	//alert(date+status+backlog_id+task_id+task_description+capitalizeWorkStatus+timeValue); 
+     	if(doValidation(status, backlog_id, task_id, timeValue, null, null, null, idVal, null)) {  	
+     		timeValue = getParsedTime(timeValue);
+     	$.ajax({
+     		 type: "POST",
+     		 url: 'taskAction01.do?method=saveAjax',
+     		 data: 'task_date='+date+'&status='+status+'&backlog_id='+backlog_id+'&task_id='+task_id+'&time='+timeValue+'&task_description='+task_description+'&work_status='+work_status,
+     		 success: function(response){
+     		 if(response=="Invalid time Entry"){
+     			document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>Invalid time Entry, Time should not more than 23Hrs.</div>";
+     		 }
+     		 else
+               {
+     			 if(status=="Leave"||status=="Half Day"){
+     		       $('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+     		    		   +"<td style=\"color: #FF0000;\">"+timeValue+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+response+")' style='cursor: pointer;'/></td><td>"
+     		       +"<img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+response+"\", this)' style='cursor: pointer;' /></td>");        		 
+     			 }
+     			 else if(status=="Public holiday"){
+     				 $('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+       		    		   +"<td style=\"color: #0000CD;\">"+timeValue+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+response+")' style='cursor: pointer;'/></td>"
+     						 +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+response+"\", this)' style='cursor: pointer;' /></td>");
+     			 }
+     			 else if(status=="Comp off"){
+     				 $('#'+idVal).html("<td style=\"color: #008000;\">"+date+"</td><td style=\"color: #008000;\">"+status+"</td><td style=\"color: #008000;\">"+backlog_id+"</td>"
+     				       +"<td style=\"color: #008000;\">"+task_id+"</td><td style=\"color: #008000;\">"+task_description+"</td><td style=\"color: #008000;\">"+capitalizeWorkStatus+"</td>"
+       		    		   +"<td style=\"color: #008000;\">"+timeValue+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+response+")' style='cursor: pointer;'/></td>"
+     					   +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+response+"\", this)' style='cursor: pointer;' /></td>");
+     			 }
+				 else {
+				     $('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+	     		    		     +"<td>"+timeValue+"</td>"
+								 +"<td><img src='edit.png' onclick='editRowEntry(this,"+response+")' style='cursor: pointer;'/></td>"
+								 +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+response+"\", this)' style='cursor: pointer;' /></td>");
+     			 }
+     		     $('#ajax_res').html("<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: blue;text-align: center;'>Data entered successfully.</div>");        		 
+               } 
+     		 },
+     		 error: function(e){
+     		    document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>*Time should be entered in ( HH.MM or HH:MM ) format and less than 24Hrs..</div>";
+     		 }
+     		});   
+     	}
+     }  
+</script>
+<script type="text/javascript">
+	function editRowInline(r,id)
+    {   		
+		var i=r.parentNode.parentNode.rowIndex;  		
+		var table = document.getElementById('dailyEntryTable');
+    	var idVal = document.getElementById('dailyEntryTable').rows[i].id;  	
+    	var editFieldStatus = table.getElementsByTagName('input').length;
+    	if(editFieldStatus>0){
+    	var row = table.getElementsByTagName('input')[0].parentNode.parentNode;
+    	document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>"
+    	+"*Please save entry:"+row.rowIndex+" and proceed for edit.</div>";
+    	var saveTd = row.getElementsByTagName('td')[7];  
+    	var mess = row.getElementsByTagName('td')[7].innerHTML;
+    	mess = mess.replace("*Save", "");
+    	row.getElementsByTagName('td')[7].innerHTML = mess+"<div style='color: red;text-align: left;'>*Save</div>";
+    	saveTd.style.backgroundColor="yellow";
+    	}
+    	else{
+    	var tableTr = table.getElementsByTagName('tr')[i];
+    	var nCell = tableTr.getElementsByTagName('td'); 
+    	var date = nCell[0].innerHTML;
+    	var status = nCell[1].innerHTML;
+    	var backlog_id = nCell[2].innerHTML;
+    	var task_id = nCell[3].innerHTML;
+    	var task_description = nCell[4].innerHTML;
+    	var workStatus = nCell[5].innerHTML;
+    	var time = nCell[6].innerHTML; 
+    	if(status=='Leave'||status=='Half Day'||status=='Down Time'||status=='Public Holiday'||status=='Comp off'||status=='Travel'){
+    	if(workStatus.trim()=='Home'){
+    		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+	                 +"<td id=\"td_st\">"
+	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT></td>"
+			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" disabled=\"disabled\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" disabled=\"disabled\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\"> Office"
+			         +"<input type=\"radio\" name=\"work_status\" value=\"home\" checked>Home</td>"
+			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+			         +"<td id=\"ed_id\"><img alt=\"1px\" id=\""+id+"\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");    
+    	}
+    	else{
+    	$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+    	                 +"<td id=\"td_st\">"
+    	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+    			         +"<option value=\""+status+"\">"+status+"</option>"
+    			         +"<option value=\"Code Review\">Code Review</option>"
+    			         +"<option value=\"Comp off\">Comp off</option>"
+    			         +"<option value=\"Development\">Development</option>"
+    			         +"<option value=\"Down Time\">Down Time</option>"
+    			         +"<option value=\"Half Day\">Half Day</option>"
+    			         +"<option value=\"Leave\">Leave</option>"
+    			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+    			         +"<option value=\"Meeting\">Meeting</option>"
+    			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+    			         +"<option value=\"Project Management\">Project Management</option>"																				
+    			         +"<option value=\"Public holiday\">Public holiday</option>"
+    			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+    			         +"<option value=\"Team Activity\">Team Activity</option>"
+    			         +"<option value=\"Testing\">Testing</option>"														
+    			         +"<option value=\"Training\">Training</option>"													
+    			         +"<option value=\"Travel\">Travel</option>"
+    			         +"</SELECT></td>"
+    			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" disabled=\"disabled\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+    			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" disabled=\"disabled\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+    			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+    			         +"<td id=\"td_workStatus\" style=\"font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\" checked> Office"
+    			         +"<input type=\"radio\" name=\"work_status\" value=\"home\">Home</td>"
+    			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+    			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+    			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");    
+    	  }
+    	}
+    	else{
+    		if(workStatus.trim()=='Home'){
+        		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+    	                 +"<td id=\"td_st\">"
+    	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+    			         +"<option value=\""+status+"\">"+status+"</option>"
+    			         +"<option value=\"Code Review\">Code Review</option>"
+    			         +"<option value=\"Comp off\">Comp off</option>"
+    			         +"<option value=\"Development\">Development</option>"
+    			         +"<option value=\"Down Time\">Down Time</option>"
+    			         +"<option value=\"Half Day\">Half Day</option>"
+    			         +"<option value=\"Leave\">Leave</option>"
+    			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+    			         +"<option value=\"Meeting\">Meeting</option>"
+    			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+    			         +"<option value=\"Project Management\">Project Management</option>"																				
+    			         +"<option value=\"Public holiday\">Public holiday</option>"
+    			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+    			         +"<option value=\"Team Activity\">Team Activity</option>"
+    			         +"<option value=\"Testing\">Testing</option>"														
+    			         +"<option value=\"Training\">Training</option>"													
+    			         +"<option value=\"Travel\">Travel</option>"
+    			         +"</SELECT></td>"
+    			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+    			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+    			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+    			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\"> Office"
+    			         +"<input type=\"radio\" name=\"work_status\" value=\"home\" checked>Home</td>"
+    			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+    			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+    			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");    
+        	}
+        	else{
+        	$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+        	                 +"<td id=\"td_st\">"
+        	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+        			         +"<option value=\""+status+"\">"+status+"</option>"
+        			         +"<option value=\"Code Review\">Code Review</option>"
+        			         +"<option value=\"Comp off\">Comp off</option>"
+        			         +"<option value=\"Development\">Development</option>"
+        			         +"<option value=\"Down Time\">Down Time</option>"
+        			         +"<option value=\"Half Day\">Half Day</option>"
+        			         +"<option value=\"Leave\">Leave</option>"
+        			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+        			         +"<option value=\"Meeting\">Meeting</option>"
+        			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+        			         +"<option value=\"Project Management\">Project Management</option>"																				
+        			         +"<option value=\"Public holiday\">Public holiday</option>"
+        			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+        			         +"<option value=\"Team Activity\">Team Activity</option>"
+        			         +"<option value=\"Testing\">Testing</option>"														
+        			         +"<option value=\"Training\">Training</option>"													
+        			         +"<option value=\"Travel\">Travel</option>"
+        			         +"</SELECT></td>"
+        			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+        			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+        			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+        			         +"<td id=\"td_workStatus\" style=\"font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\" checked> Office"
+        			         +"<input type=\"radio\" name=\"work_status\" value=\"home\">Home</td>"
+        			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+        			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+        			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");    
+        	}
+    	}
+        $('#des_id').focus();
+        $('#popupDatepicker').value[0]=$('#popupDatepicker').datepick();
+    	}
+        
+    } 	
+	 function callAjaxEditSave(r,id){ 
+     	var i=r.parentNode.parentNode.rowIndex;  
+     	var idVal = document.getElementById('dailyEntryTable').rows[i].id;
+     	var table = document.getElementById('dailyEntryTable');
+     	var tableTr = table.getElementsByTagName('tr')[i];
+     	var nCell = tableTr.getElementsByTagName('td');          	
+     	var date = nCell[0].firstChild.value;
+     	var status = nCell[1].firstChild.value;          	
+     	var backlog_id = nCell[2].firstChild.value;
+     	var task_id = nCell[3].firstChild.value;
+     	var task_description = nCell[4].firstChild.value;   	
+    
+     	var currentBackId = nCell[2].getAttribute("id");
+     	var currentTaskId = nCell[3].getAttribute("id");
+     	var currentTimeId = nCell[6].getAttribute("id");
+     	var currentEditId = nCell[7].getAttribute("id");
+     	
+     	var workStatus = nCell[5].firstChild.value;
+     	var radioLength = nCell[5].getElementsByTagName('input').length;    	
+     	for (var p = 0; p < radioLength; p++){
+     		if(nCell[5].getElementsByTagName('input')[p].checked){
+     			workStatus = nCell[5].getElementsByTagName('input')[p].value;
+     		}
+     	}
+     	var capitalizeWorkStatus = null;
+     	if(workStatus=='home'){
+     		capitalizeWorkStatus = 'Home';
+     	}
+     	else if(workStatus=='office'){
+     		capitalizeWorkStatus = 'Office';
+     	}
+    	var time = nCell[6].firstChild.value;
+    	if(doValidation(status, backlog_id, task_id, time, null, null, null, idVal, null)) {  	
+    		time = getParsedTime(time);
+     		$.ajax({
+     		 	type: "GET",
+     		 	url: 'taskAction01.do?method=saveEditAjax',
+     		 	data: 'task_date='+date+'&status='+status+'&backlog_id='+backlog_id+'&task_id='+task_id+'&time='+time+'&task_description='+task_description+'&id='+id+'&work_status='+workStatus,
+     			 success: function(response){
+     		 	// alert(response);
+     		 	if(response=="Invalid time Entry"){
+     				document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>Invalid time Entry, Time should not more than 23Hrs.</div>";
+     		 	}
+     		 	else if(response=="Data edited sucessfully"){
+     			 	if(status=="Leave"||status=="Half Day"){
+     		       	$('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+     		    		   +"<td style=\"color: #FF0000;\">"+time+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+     		    		   +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");        		 
+     			 	}
+     			 	else if(status=="Public holiday"){
+     				 	$('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+     						 +"<td style=\"color: #0000CD;\">"+time+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+     						 +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");
+     			 	}
+     			 	else if(status=="Comp off"){
+     				 	$('#'+idVal).html("<td style=\"color: #008000;\">"+date+"</td><td style=\"color: #008000;\">"+status+"</td><td style=\"color: #008000;\">"+backlog_id+"</td><td style=\"color: #008000;\">"+task_id+"</td><td style=\"color: #008000;\">"+task_description+"</td><td style=\"color: #008000;\">"+capitalizeWorkStatus+"</td>"
+     						 +"<td style=\"color: #008000;\">"+time+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+     						 +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");
+     				 }
+     			 	else
+     				 	{
+     				 	$('#'+idVal).html("<td>"+date+"</td><td>"+status+"</td><td>"+backlog_id+"</td><td>"+task_id+"</td><td>"+task_description+"</td><td>"+capitalizeWorkStatus+"</td>"
+     						 +"<td>"+time+"</td><td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+     						 +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");
+     				 	}
+     		    
+     		    	$('#ajax_res').html("<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: blue;text-align: center;'>Data edited sucessfully.</div>");        		 
+               	} },
+     		 	error: function(e){
+     		    	document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 12px;color: red;text-align: center;'>*Time should be entered in ( HH.MM or HH:MM ) format and less than 24Hrs.</div>";
+     		 	}
+     			}); 
+    		}
+     	} 
+	 function editRowEntry(r,id){ 		 
+		document.getElementById("ajax_res").innerHTML="";
+     	var i=r.parentNode.parentNode.rowIndex;  
+     	var idVal = document.getElementById('dailyEntryTable').rows[i].id;
+     	var table = document.getElementById('dailyEntryTable');
+     	var editFieldStatus = table.getElementsByTagName('input').length;
+    	if(editFieldStatus>0){
+    	var row = table.getElementsByTagName('input')[0].parentNode.parentNode;
+    	document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>"
+        	+"*Please save entry:"+row.rowIndex+" from top and proceed for edit.</div>";
+    	var saveTd = row.getElementsByTagName('td')[7];
+    	var mess = row.getElementsByTagName('td')[7].innerHTML;
+    	mess = mess.replace("*Save", "");
+    	row.getElementsByTagName('td')[7].innerHTML = mess+"<div style='color: red;text-align: left;'>*Save</div>";
+    	saveTd.style.backgroundColor="yellow";
+    	}
+    	else{
+     	var table = document.getElementById('dailyEntryTable');
+     	var tableTr = table.getElementsByTagName('tr')[i];
+     	var nCell = tableTr.getElementsByTagName('td'); 
+     	var date = nCell[0].innerHTML;
+     	var status = nCell[1].innerHTML;
+     	var backlog_id = nCell[2].innerHTML;
+     	var task_id = nCell[3].innerHTML;
+     	var task_description = nCell[4].innerHTML;
+     	var workStatus =nCell[5].innerHTML;
+     	var time = nCell[6].innerHTML;
+     	if(status=='Leave'||status=='Half Day'||status=='Down Time'||status=='Public Holiday'||status=='Comp off'||status=='Travel'){
+     	if(workStatus.trim()=='Home'){
+     		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+	                 +"<td id=\"td_st\">"
+	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT></td>"
+			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" disabled=\"disabled\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" disabled=\"disabled\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\"> Office"
+			         +"<input type=\"radio\" name=\"work_status\" value=\"home\" checked>Home</td>"
+			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");  
+     	}
+     	else{
+     		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+	                 +"<td id=\"td_st\">"
+	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT></td>"
+			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" disabled=\"disabled\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" disabled=\"disabled\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\" checked> Office"
+			         +"<input type=\"radio\" name=\"work_status\" value=\"home\">Home</td>"
+			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");  
+     	}
+     	}
+     	else{
+     		if(workStatus.trim()=='Home'){
+         		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+    	                 +"<td id=\"td_st\">"
+    	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+    			         +"<option value=\""+status+"\">"+status+"</option>"
+    			         +"<option value=\"Code Review\">Code Review</option>"
+    			         +"<option value=\"Comp off\">Comp off</option>"
+    			         +"<option value=\"Development\">Development</option>"
+    			         +"<option value=\"Down Time\">Down Time</option>"
+    			         +"<option value=\"Half Day\">Half Day</option>"
+    			         +"<option value=\"Leave\">Leave</option>"
+    			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+    			         +"<option value=\"Meeting\">Meeting</option>"
+    			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+    			         +"<option value=\"Project Management\">Project Management</option>"																				
+    			         +"<option value=\"Public holiday\">Public holiday</option>"
+    			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+    			         +"<option value=\"Team Activity\">Team Activity</option>"
+    			         +"<option value=\"Testing\">Testing</option>"														
+    			         +"<option value=\"Training\">Training</option>"													
+    			         +"<option value=\"Travel\">Travel</option>"
+    			         +"</SELECT></td>"
+    			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+    			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+    			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+    			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\"> Office"
+    			         +"<input type=\"radio\" name=\"work_status\" value=\"home\" checked>Home</td>"
+    			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+    			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+    			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");  
+         	}
+         	else{
+         		$('#'+idVal).html("<td id=\"td_dt\" width=\"80px\"><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" value='"+date+"' STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+    	                 +"<td id=\"td_st\">"
+    	                 +"<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+    			         +"<option value=\""+status+"\">"+status+"</option>"
+    			         +"<option value=\"Code Review\">Code Review</option>"
+    			         +"<option value=\"Comp off\">Comp off</option>"
+    			         +"<option value=\"Development\">Development</option>"
+    			         +"<option value=\"Down Time\">Down Time</option>"
+    			         +"<option value=\"Half Day\">Half Day</option>"
+    			         +"<option value=\"Leave\">Leave</option>"
+    			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+    			         +"<option value=\"Meeting\">Meeting</option>"
+    			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+    			         +"<option value=\"Project Management\">Project Management</option>"																				
+    			         +"<option value=\"Public holiday\">Public holiday</option>"
+    			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+    			         +"<option value=\"Team Activity\">Team Activity</option>"
+    			         +"<option value=\"Testing\">Testing</option>"														
+    			         +"<option value=\"Training\">Training</option>"													
+    			         +"<option value=\"Travel\">Travel</option>"
+    			         +"</SELECT></td>"
+    			         +"<td id=\"td_back\"><INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+"></td>"
+    			         +"<td id=\"td_task\"><INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" ></td>"
+    			         +"<td id=\"td_des\"><textarea name=\"task_description\" id=\"des_id\" value="+task_description+" rows=\"2\" cols=\"2\" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+task_description+"</textarea></td>"
+    			         +"<td id=\"td_workStatus\" style=\"height: 100px;width: 200px;font-family: verdana, arial, sans-serif;font-size: 11px;\"><input type=\"radio\" name=\"work_status\" value=\"office\" checked> Office"
+    			         +"<input type=\"radio\" name=\"work_status\" value=\"home\">Home</td>"
+    			         +"<td id=\"td_tm\"><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+time+"></td>"
+    			         +"<td id=\"ed_id\"><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjaxEditSave(this,"+id+")\" style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+    			         +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");  
+         	}
+     	}
+        document.getElementById("des_id").focus(); 
+         if (status =="Leave"||status =="Public holiday"||status =="Half Day"||status =="Comp off") {    	
+             document.getElementById("backlog_id").disabled='true';        
+             document.getElementById("task_id").disabled='true';
+         }  
+         document.getElementById("des_id").focus();
+         document.getElementById("popupDatepicker").value[0]=$('#popupDatepicker').datepick(); 
+    	}
+     } 
+	/*  doValidation(backlog_id, task_id, time, currentBackId, currentTaskId, currentTimeId, idVal, currentEditId);  */
+	 function doValidation(status, backlog_id, task_id, time, currentBackId, currentTaskId, currentTimeId, currentRowId, currentEditId){							
+		     if( status==""){
+				document.getElementById(currentRowId).getElementsByTagName('td')[1].innerHTML="<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;border: 1 solid;border-color:red;background-color:#FFFFE7;\">"
+			         +"<option value=\"\">Select</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT>";
+				    /*  +"<div style='color: red' id=\"error_status\">*Category</div>"; */
+				    document.getElementById("ajax_res").innerHTML ="<div style='font-family: verdana, arial, sans-serif;font-size: 11px;color: red;text-align: center;'>"
+				    +"*Please select category.</div>";
+				return false;
+			   }		
+		     else if(status!="" &&  backlog_id==""){		    	 
+		    	 document.getElementById(currentRowId).getElementsByTagName('td')[1].innerHTML="<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;border: 1 solid;border-color: #3C3CFF;;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT>";
+				document.getElementById(currentRowId).getElementsByTagName('td')[2].innerHTML="<INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" "
+				    +" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" "
+				    +" value="+backlog_id+" >"
+				    +"<div style='color: red'>*Backlog</div>";
+				return false;
+			   }
+			else if((status!="" &&  backlog_id!="") && task_id==""){				
+				 document.getElementById(currentRowId).getElementsByTagName('td')[1].innerHTML="<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;border: 1 solid;border-color: #3C3CFF;;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT>";
+				document.getElementById(currentRowId).getElementsByTagName('td')[2].innerHTML="<INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" "
+				    +" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" "
+				    +" value="+backlog_id+">";
+				document.getElementById(currentRowId).getElementsByTagName('td')[3].innerHTML="<INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" "
+				 +" SIZE=\"5\" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+task_id+" >"
+				 +"<div style='color: red'>*Task Id</div>";
+				 return false;
+				}
+			else if((status!="" && backlog_id!="") && task_id!=""){				
+				document.getElementById(currentRowId).getElementsByTagName('td')[1].innerHTML="<SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;border: 1 solid;border-color: #3C3CFF;;\">"
+			         +"<option value=\""+status+"\">"+status+"</option>"
+			         +"<option value=\"Code Review\">Code Review</option>"
+			         +"<option value=\"Comp off\">Comp off</option>"
+			         +"<option value=\"Development\">Development</option>"
+			         +"<option value=\"Down Time\">Down Time</option>"
+			         +"<option value=\"Half Day\">Half Day</option>"
+			         +"<option value=\"Leave\">Leave</option>"
+			         +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+			         +"<option value=\"Meeting\">Meeting</option>"
+			         +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+			         +"<option value=\"Project Management\">Project Management</option>"																				
+			         +"<option value=\"Public holiday\">Public holiday</option>"
+			         +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+			         +"<option value=\"Team Activity\">Team Activity</option>"
+			         +"<option value=\"Testing\">Testing</option>"														
+			         +"<option value=\"Training\">Training</option>"													
+			         +"<option value=\"Travel\">Travel</option>"
+			         +"</SELECT>";
+				document.getElementById(currentRowId).getElementsByTagName('td')[2].innerHTML="<INPUT TYPE=\"text\" id=\"backlog_id\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" "
+				  +" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+backlog_id+">";
+				document.getElementById(currentRowId).getElementsByTagName('td')[3].innerHTML="<INPUT TYPE=\"text\" id=\"task_id\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" "
+				+" MAXLENGTH=\"20\" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" value="+task_id+" >";
+				var timeValue = time;
+			    if(timeValue == ""|| timeValue.indexOf('-')>=0 || ( timeValue.length>2 & (timeValue.indexOf('.')<0 & timeValue.indexOf(':')<0 ))||(timeValue.indexOf('.')==0 || timeValue.indexOf(':')==0)){
+			    	document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+			    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+			    	+"<div style='color: red'>*Time</div>";
+			    	$('#'+timeId).focus();
+			       // alert("Invalid Time format");
+			        return false;
+			    }
+			    else if(((timeValue!= ""&timeValue.length>0) & timeValue.indexOf('.')==-1) & ((timeValue!= ""&timeValue.length>0) & timeValue.indexOf(':')==-1) ){
+					// incase of only Hrs entered no mints specified.							    	
+			    	  if(timeValue <24){
+			    		     return true;
+			    		  }
+			    	  else{	
+			    		  document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+						    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+						    	+"<div style='color: red'>*Time</div>";
+						    	$('#'+timeId).focus();
+			    		   return false;
+			    		  }
+			    	}
+			    else {
+			    	if(!timeValue.indexOf(".")<0){
+			        var sHours = timeValue.split('.')[0];
+			        var sMinutes = timeValue.split('.')[1]; 							      
+			        if(sHours == "" || isNaN(sHours) || parseInt(sHours)>23){
+			           // alert("Invalid Time format");
+			           document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+			    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+			    	+"<div style='color: red'>*Time</div>";
+			    	$('#'+timeId).focus();
+			            return false;
+			        }
+			        else if(parseInt(sHours) == 0)
+			            sHours = "00";
+			        else if (sHours <10)
+			            sHours = "0"+sHours;
+			        if(sMinutes == "" || isNaN(sMinutes) || parseInt(sMinutes)>59|| parseInt(sMinutes.charAt(0))>6){
+			           // alert("Invalid Time format");
+			           document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+			    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+			    	+"<div style='color: red'>*Time</div>";
+			    	$('#'+timeId).focus();
+			            return false;
+			        }
+			        else if(parseInt(sMinutes) == 0)
+			            sMinutes = "00";
+			        else if (sMinutes <10)
+			            sMinutes = "0"+sMinutes;                                         
+			        time = sHours + "." + sMinutes;  
+			        }
+			    	else if(!timeValue.indexOf(":")<0){
+			    		var sHours = timeValue.split(':')[0];
+				        var sMinutes = timeValue.split(':')[1]; 				      
+				        if(sHours == "" || isNaN(sHours) || parseInt(sHours)>23){
+				           // alert("Invalid Time format");
+				           document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+			    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+			    	+"<div style='color: red'>*Time</div>";
+			    	$('#'+timeId).focus();
+				            return false;
+				        }
+				        else if(parseInt(sHours) == 0)
+				            sHours = "00";
+				        else if (sHours <10)
+				            sHours = "0"+sHours;
+				        if(sMinutes == "" || isNaN(sMinutes) || parseInt(sMinutes)>59|| parseInt(sMinutes.charAt(0))>6) {
+				            //alert("Invalid Time format");
+				            document.getElementById(currentRowId).getElementsByTagName('td')[6].innerHTML= "<INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\" "
+			    	+" SIZE=\"5\" MAXLENGTH=\"5\" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;border-color:red;background-color:#FFFFE7;\" value="+time+">"
+			    	+"<div style='color: red'>*Time</div>";
+			    	$('#'+timeId).focus();
+				            return false;
+				        }
+				        else if(parseInt(sMinutes) == 0)
+				            sMinutes = "00";
+				        else if (sMinutes <10)
+				            sMinutes = "0"+sMinutes;                                         
+				        time = sHours + ":" + sMinutes; 							    									    		
+			    	}
+			     }
+			    return true;															
+			}
+			  return true;
+			}
+</script>
+<script type="text/javascript">
+	function onSave(url) {
+		var selectedDate = $("#popupDatepicker").val();
+		/* var holidayArray = new Array("01/26/2012", "02/20/2012", "03/09/2012", "03/23/2012", "04/06/2012", "05/01/2012", "08/15/2012", "08/20/2012", "08/29/2012", "09/19/2012", "10/02/2012", "10/24/2012", "11/01/2012", "11/14/2012", "12/25/2012"); */
+		var holidayArray = new Array("01/01/2013", "01/14/2013", "01/26/2013",
+				"03/26/2013", "03/29/2013", "04/11/2013", "05/01/2013",
+				"08/09/2013", "08/15/2013", "09/09/2013", "09/16/2013",
+				"10/02/2013", "10/14/2013", "11/01/2013", "12/25/2013");
+		var checkDesc = document.getElementById("descId").value;
+		if (checkDesc == "") {
+			for ( var i = 0; i < holidayArray.length; i++) {
+				var checkDate = holidayArray[i];
+				if (selectedDate == checkDate) {
+					alert("Today is Holiday.");
+					var submitForm = document.forms[0];
+					submitForm.action = url;
+					submitForm.submit();
+				}
+			}
+			var submitForm = document.forms[0];
+			submitForm.action = url;
+			submitForm.submit();
+
+		} else {
+			var submitForm = document.forms[0];
+			submitForm.action = url;
+			submitForm.submit();
+			return clearForm1();
+		}
+	}
+
+	function clearForm1() {
+		document.forms[0].task_date.value = "";
+		document.forms[0].backlog_id.value = "";
+		document.forms[0].task_id.value = "";
+		document.forms[0].task_description.value = "";
+		document.forms[0].time.value = "";
+
+	}
+</script>
+<script type="text/javascript">
+	function hideTableView(){
+		  document.getElementById('dailyEntryTable').style.visibility = "hidden";
+		  document.getElementById('ajax_res').innerHTML="<div style=\"color: red;text-align: center;font-family: verdana, arial, sans-serif;font-size: 11px;\">*No records found for this month please click on New Entry button to add a entry.</div>";
+		}
+</script>
+<script type="text/javascript">
+	function saveAllEntry() {
+		document.getElementById("ajax_res").innerHTML="";
+	    var table = document.getElementById("dailyEntryTable");
+		var totalRow = table.getElementsByTagName('tr').length-1;							 
+		var taskJson = new Array();							 
+		for(var i=0;i<=totalRow;i++) {
+		    var tableRow = table.getElementsByTagName('tr')[i];								   									   
+			var input = tableRow.getElementsByTagName('input');
+				if(input.length=='6'){
+					var nCell = tableRow.getElementsByTagName('td');  
+					var currentRowId = tableRow.getAttribute("id");	
+					var dateId = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[2].getAttribute("id");
+					var backId = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[2].getAttribute("id");		
+					var taskId = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[3].getAttribute("id");		
+					var work_statusId = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[5].getAttribute("id");
+					var timeId = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[6].getAttribute("id");
+					var edit_id = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[7].getAttribute("id");						
+				    if(edit_id!=null){
+				    	var mess = table.getElementsByTagName('tr')[i].getElementsByTagName('td')[7].innerHTML;
+				    	table.getElementsByTagName('tr')[i].getElementsByTagName('td')[7].innerHTML=mess+"<div style='color: red;text-align: left;'>*Save</div>";
+				    	table.getElementsByTagName('tr')[i].getElementsByTagName('td')[7].style.backgroundColor="yellow";
+				     }
+				    else{
+					 var date = nCell[0].firstChild.value;
+					 var status = nCell[1].firstChild.value;
+					 var backlog_id = nCell[2].firstChild.value;
+					 var task_id = nCell[3].firstChild.value;
+					 var task_description = nCell[4].firstChild.value;					
+					 var work_status ='';
+					 var radioLength = nCell[5].getElementsByTagName('input').length;    	
+			     	 for (var p = 0; p < radioLength; p++){
+			     		if(nCell[5].getElementsByTagName('input')[p].checked){
+			     			work_status = nCell[5].getElementsByTagName('input')[p].value;
+			     		}
+			     	 }
+					var time = nCell[6].firstChild.value;
+					if(doValidation(status,backlog_id,task_id,time, backId, taskId,timeId,currentRowId,edit_id)){
+						time = getParsedTime(time);
+						taskJson.push({ "date": date, "status": status, "backlog_id": backlog_id, "task_id" :task_id,"task_description":task_description,"work_status":work_status, "time":time,"currentRowId":currentRowId});							          							                                              							          				           							           							           							           							           							           							          									 								
+					}
+				   }
+				};	     //close for IF										   																		   
+		};		//close for Loop									 															 
+					$.ajax({
+				      type: "POST",
+				      dataType: "JSON",
+				      url: 'taskAction01.do?method=saveAllAjax',
+				      data:  { taskJson: JSON.stringify(taskJson)},
+				      success: function(response){				        		 				        		 
+				        for(var i=0;i<taskJson.length;i++){						        	   
+						    // alert(taskJson.length);
+				        	var capitalizeWorkStatus = null;
+					     	if(taskJson[i].work_status=='home'){
+					     		capitalizeWorkStatus = 'Home';
+					     	}
+					     	else if(taskJson[i].work_status=='office'){
+					     		capitalizeWorkStatus = 'Office';
+					     	}    
+				            var id = response[i];
+						    if(id=='0' && taskJson[i].work_status=='office'){
+						      $('#'+taskJson[i].currentRowId).html("<td><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" "
+				   		            +" value=\""+taskJson[i].date+"\" "
+				   		            +" STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+						        	+"<td><SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+						            +"<option value=\""+taskJson[i].status+"\">"+taskJson[i].status+"</option>"
+						            +"<option value=\"Code Review\">Code Review</option>"
+						            +"<option value=\"Comp off\">Comp off</option>"
+						            +"<option value=\"Development\">Development</option>"
+						            +"<option value=\"Down Time\">Down Time</option>"
+						            +"<option value=\"Half Day\">Half Day</option>"
+						            +"<option value=\"Leave\">Leave</option>"
+						            +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+						            +"<option value=\"Meeting\">Meeting</option>"
+						            +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+						            +"<option value=\"Project Management\">Project Management</option>"																				
+						            +"<option value=\"Public holiday\">Public holiday</option>"
+						            +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+						            +"<option value=\"Team Activity\">Team Activity</option>"
+						            +"<option value=\"Testing\">Testing</option>"														
+						            +"<option value=\"Training\">Training</option>"													
+						            +"<option value=\"Travel\">Travel</option>"
+						            +"</SELECT></td>"
+						        	+"<td><INPUT TYPE=\"text\" id=\"backlog_id\" value=\""+taskJson[i].backlog_id+"\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" "
+		                            +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+						        	+"<td><INPUT TYPE=\"text\" id=\"task_id\" value=\""+taskJson[i].task_id+"\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" "
+			    	                 +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" ></td>"
+						        	+"<td><textarea name=\"task_description\" id=\"des_id\" rows=\"2\" cols=\"2\" "
+			    	                +" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+taskJson[i].task_description+"</textarea></td>"
+			    	                +"<td><input type=\"radio\"  name=\"work_status"+count+"\" value=\"office\" checked> Office"
+				                    +"<input type=\"radio\"  name=\"work_status"+count+"\" value=\"home\">Home</td>"
+						        	+"<td><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" value=\""+taskJson[i].time+"\" "
+			    	                +" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"><div style='color: red;'>*Max upto 23Hrs</div></td>"
+						        	+"<td><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjax(this)\"  style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+						        	+"<td><img alt=\"1\" src=\"img/minus.png\" SIZE=\"5\" title=\"Delete\" onClick='deleteRow(this);' style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>");
+						     }
+						    else if(id=='0' && taskJson[i].work_status=='home'){
+							      $('#'+taskJson[i].currentRowId).html("<td><INPUT TYPE=\"text\" NAME=\"task_date\" title=\"Date\" id=\"popupDatepicker\" readonly=\"true\" SIZE=\"5\" MAXLENGTH=\"10\" "
+					   		            +" value=\""+taskJson[i].date+"\" "
+					   		            +" STYLE=\"height:4;width: 65px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+							        	+"<td><SELECT NAME=\"status\" id=\"status\" title=\"Select your Work category\" onchange=\"changeDynamicTextBox(this);\" style=\"width: 120px;font-family: verdana, arial, sans-serif;font-size: 11px;\">"
+							            +"<option value=\""+taskJson[i].status+"\">"+taskJson[i].status+"</option>"
+							            +"<option value=\"Code Review\">Code Review</option>"
+							            +"<option value=\"Comp off\">Comp off</option>"
+							            +"<option value=\"Development\">Development</option>"
+							            +"<option value=\"Down Time\">Down Time</option>"
+							            +"<option value=\"Half Day\">Half Day</option>"
+							            +"<option value=\"Leave\">Leave</option>"
+							            +"<option value=\"Maintenance/Release support\">Maintenance/Release support</option>"
+							            +"<option value=\"Meeting\">Meeting</option>"
+							            +"<option value=\"Pre-Project Training\">Pre-Project Training</option>"								
+							            +"<option value=\"Project Management\">Project Management</option>"																				
+							            +"<option value=\"Public holiday\">Public holiday</option>"
+							            +"<option value=\"Task unassigned/Idle\">Task unassigned/Idle</option>"	
+							            +"<option value=\"Team Activity\">Team Activity</option>"
+							            +"<option value=\"Testing\">Testing</option>"														
+							            +"<option value=\"Training\">Training</option>"													
+							            +"<option value=\"Travel\">Travel</option>"
+							            +"</SELECT></td>"
+							        	+"<td><INPUT TYPE=\"text\" id=\"backlog_id\" value=\""+taskJson[i].backlog_id+"\" title=\"Mandatory to enter\" NAME=\"backlog_id\" SIZE=\"5\" MAXLENGTH=\"20\" "
+			                            +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"></td>"
+							        	+"<td><INPUT TYPE=\"text\" id=\"task_id\" value=\""+taskJson[i].task_id+"\" NAME=\"task_id\" title=\"Mandatory to enter\" SIZE=\"5\" MAXLENGTH=\"20\" "
+				    	                 +" STYLE=\"height:4;width: 60px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\" ></td>"
+							        	+"<td><textarea name=\"task_description\" id=\"des_id\" rows=\"2\" cols=\"2\" "
+				    	                +" STYLE=\"width: 160px;height: 100px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\">"+taskJson[i].task_description+"</textarea></td>"
+				    	                +"<td><input type=\"radio\"  name=\"work_status"+count+"\" value=\"office\" > Office"
+					                    +"<input type=\"radio\"  name=\"work_status"+count+"\" value=\"home\" checked>Home</td>"
+							        	+"<td><INPUT TYPE=\"text\" NAME=\"time\" title=\"eg:HH.MM, HH:MM\" id=\"time\"  SIZE=\"5\" MAXLENGTH=\"5\" value=\""+taskJson[i].time+"\" "
+				    	                +" STYLE=\"height:4;width: 40px;border: 1 solid;margin:0;font-family: verdana, arial, sans-serif;font-size: 11px;\"><div style='color: red;'>*Max upto 23Hrs</div></td>"
+							        	+"<td><img alt=\"1px\" src=\"img/save.gif\" id=\"edit\" title=\"Save\" SIZE=\"5\"  onClick=\"callAjax(this)\"  style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>"
+							        	+"<td><img alt=\"1\" src=\"img/minus.png\" SIZE=\"5\" title=\"Delete\" onClick='deleteRow(this);' style=\"height: 20px;width: 20px;font-family: verdana, arial, sans-serif;font-size: 11px;cursor: pointer;\"></td>");
+							     }
+						    else{						        	 	    	 
+						        if(taskJson[i].status=="Leave"||taskJson[i].status=="Half Day"){	
+						          $('#'+taskJson[i].currentRowId).html("<td>"+taskJson[i].date+"</td><td>"+taskJson[i].status+"</td>"
+						        		  +"<td>"+taskJson[i].backlog_id+"</td><td>"+taskJson[i].task_id+"</td><td>"+taskJson[i].task_description+"</td>"
+						        		  +"<td>"+capitalizeWorkStatus+"</td><td style=\"color: red;\">"+taskJson[i].time+"</td>"
+						        		  +"<td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+						        		  +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");
+						        }
+						        else if(taskJson[i].status=="Public holiday"){						        	
+						        	$('#'+taskJson[i].currentRowId).html("<td>"+taskJson[i].date+"</td><td>"+taskJson[i].status+"</td>"
+							        		  +"<td>"+taskJson[i].backlog_id+"</td><td>"+taskJson[i].task_id+"</td><td>"+taskJson[i].task_description+"</td>"
+							        		  +"<td>"+capitalizeWorkStatus+"</td><td style=\"color: #0000CD;\">"+taskJson[i].time+"</td>"
+							        		  +"<td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+							        		  +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");						        
+						        }
+						        else if(taskJson[i].status=="Comp off"){						        	
+						        	$('#'+taskJson[i].currentRowId).html("<td style=\"color: #008000;\">"+taskJson[i].date+"</td><td style=\"color: #008000;\">"+taskJson[i].status+"</td>"
+							        		  +"<td style=\"color: #008000;\">"+taskJson[i].backlog_id+"</td><td style=\"color: #008000;\">"+taskJson[i].task_id+"</td><td style=\"color: #008000;\">"+taskJson[i].task_description+"</td>"
+							        		  +"<td style=\"color: #008000;\">"+capitalizeWorkStatus+"</td><td style=\"color: #008000;\">"+taskJson[i].time+"</td>"
+							        		  +"<td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+							        		  +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");						        
+						        }
+						        else{
+						        	$('#'+taskJson[i].currentRowId).html("<td>"+taskJson[i].date+"</td><td>"+taskJson[i].status+"</td>"
+							        		  +"<td>"+taskJson[i].backlog_id+"</td><td>"+taskJson[i].task_id+"</td><td>"+taskJson[i].task_description+"</td>"
+							        		  +"<td>"+capitalizeWorkStatus+"</td><td>"+taskJson[i].time+"</td>"
+							        		  +"<td><img src='edit.png' onclick='editRowEntry(this,"+id+")' style='cursor: pointer;'/></td>"
+							        		  +"<td><img src='delete1.png' onclick='onDelete(\"taskAction1.do?method=delete&id="+id+"\", this)' style='cursor: pointer;' /></td>");						        
+						        }					       
+						     }	// Close for else block
+				       }     // Close for for loop
+				     },
+				    error: function(e){							        			 							        			 							        			 
+				       alert("Error while saving entry. ");						        		   
+				        }
+				  });
+	}
+</script>
+</head>
+<body style="margin: 17%; margin-top: 0%; outline-color: blue;">
+	<div style="margin-left: 40px;">
+		<html:form action="taskAction" method="POST">
+				<div id="ajax_res"></div>
+				<logic:present name="defaultCategoryForResource" scope="request">
+				    <input type="hidden" id="defaultCategory" value="<bean:write name="defaultCategoryForResource"/>" style="width: 0px;height: 0px;">
+				</logic:present>
+				<table style="padding: 0px;">
+					<tr>
+						<td
+							style='font-family: verdana, arial, sans-serif; font-size: 11px;'>
+							<input type="button" onclick="addRow('dailyEntryTable')" id="new_entry_buttonId"
+							value="New Entry" title="Add time entry."
+							style="font-family: verdana, arial, sans-serif; font-size: 11px; text-align: left; cursor: pointer;" />
+						</td>
+						<td style="text-align: left;"><input type="button" id="save_id_buttonId"
+							value="Save All" onclick="saveAllEntry();"
+							title="Save all new entries only."
+							style="font-family: verdana, arial, sans-serif; font-size: 11px; text-align: left; cursor: pointer;" />
+
+						</td>
+					</tr>
+				</table>
+				<div id="myDiv"
+					style="width: 780px; height: 800px; overflow: scroll; overflow: auto;">
+					<!-- <div style="width: 1250px; height: 400px; overflow: scroll;"> -->
+					<table id="dailyEntryTable" class="sortable" border="3"
+						width="760px">
+						<tr class="head">
+							<th><h4>Date</h4></th>
+							<th><h4>Category</h4></th>
+							<th style="width: 5pc"><h4>Backlog ID</h4></th>
+							<th style="width: 0pc"><h4>Task ID</h4></th>
+							<th style="width: 13pc"><h4>Description</h4></th>
+							<th><h4>Efforts From</h4></th>
+							<th style="width: 7pc"><h4>Time in Hrs</h4></th>
+							<th><h4>
+									Edit<br>/Save
+								</h4></th>
+							<th><h4>Delete</h4></th>
+						</tr>
+						<logic:empty  name="tList" scope="request">
+						  <div id="hide_table">
+						  <script type="text/javascript"> hideTableView();</script>						  
+						  </div>						
+						</logic:empty>
+						<logic:notEmpty name="tList" scope="request">
+						<logic:iterate id="tList" name="tList" scope="request"
+							type="com.calsoft.task.form.TaskForm">
+							<tr id="<bean:write name="tList" property="id" />">
+								<logic:equal name="tList" property="status" value="Comp off">
+									<td style="color: #008000;"><bean:write name="tList"
+											property="task_date" /></td>
+									<td style="color: #008000;"><bean:write name="tList"
+											property="status" /></td>
+									<td style="color: #008000;"><bean:write name="tList"
+											property="backlog_id" /></td>
+									<td style="color: #008000;"><bean:write name="tList"
+											property="task_id" /></td>
+									<td style="color: #008000;"><bean:write name="tList"
+											property="task_description" /></td>
+									<td style="color: #008000;"><logic:equal name="tList"
+											property="work_status" value="home">Home</logic:equal> <logic:notEqual
+											name="tList" property="work_status" value="home">
+											<logic:equal name="tList" property="work_status"
+												value="office">Office</logic:equal>
+											<logic:notEqual name="tList" property="work_status"
+												value="office"></logic:notEqual>
+										</logic:notEqual></td>
+									<td style="color: #008000;"><bean:write name="tList"
+											property="time" /></td>
+								</logic:equal>
+								<logic:notEqual name="tList" property="status" value="Comp off">
+									<td><bean:write name="tList" property="task_date" /></td>
+									<td><bean:write name="tList" property="status" /></td>
+									<td><bean:write name="tList" property="backlog_id" /></td>
+									<td style="width: 3pc"><bean:write name="tList"
+											property="task_id" /></td>
+									<td style="width: 13pc"><bean:write name="tList"
+											property="task_description" /></td>
+									<td><logic:equal name="tList" property="work_status"
+											value="home">Home</logic:equal> <logic:notEqual name="tList"
+											property="work_status" value="home">
+											<logic:equal name="tList" property="work_status"
+												value="office">Office</logic:equal>
+											<logic:notEqual name="tList" property="work_status"
+												value="office"></logic:notEqual>
+										</logic:notEqual></td>
+									<logic:equal name="tList" property="status" value="Half Day">
+										<td style="width: 7pc; color: #FF0000;"><bean:write
+												name="tList" property="time" /></td>
+									</logic:equal>
+									<logic:notEqual name="tList" property="status" value="Half Day">
+										<logic:equal name="tList" property="status" value="Leave">
+											<td style="width: 7pc; color: #FF0000;"><bean:write
+													name="tList" property="time" /></td>
+										</logic:equal>
+										<logic:notEqual name="tList" property="status" value="Leave">
+											<logic:equal name="tList" property="status"
+												value="Public holiday">
+												<td style="width: 7pc; color: #0000CD;"><bean:write
+														name="tList" property="time" /></td>
+											</logic:equal>
+											<logic:notEqual name="tList" property="status"
+												value="Public holiday">
+												<td><bean:write name="tList" property="time" /></td>
+											</logic:notEqual>
+										</logic:notEqual>
+									</logic:notEqual>
+								</logic:notEqual>
+								<td><a
+									onclick="editRowInline(this,<bean:write name="tList" property="id" />);"><img
+										src="edit.png" style="cursor: pointer;" /></a>
+								<td><a
+									onclick="onDelete('taskAction1.do?method=delete&id=<bean:write name="tList" property="id" />', this)"><img
+										src="delete1.png" style="cursor: pointer;" /></a></td>
+							</tr>
+						</logic:iterate>
+			         </logic:notEmpty>
+					</table>
+				</div>
+		</html:form>
+	</div>
+</body>
+</html>

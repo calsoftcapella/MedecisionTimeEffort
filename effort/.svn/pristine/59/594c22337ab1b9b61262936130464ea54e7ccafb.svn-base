@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+   "http://www.w3.org/TR/html4/loose.dtd">
+<%@taglib prefix="html" uri="/WEB-INF/struts-html.tld"%>
+<%@taglib prefix="logic" uri="/WEB-INF/struts-logic.tld"%>
+<%@taglib prefix="bean" uri="/WEB-INF/struts-bean.tld"%>
+<html>
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript">
+	function submitReport(url) {
+
+		var formSubmit = document.forms[0];
+		formSubmit.action = url;
+		formSubmit.submit();
+
+	}
+</script>
+<style type="text/css">
+body {
+	font: normal 14px Calibri, Calibri, Calibri;
+}
+a.LINK {
+	color: #003CCD
+}
+table.hovertable1 {
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	align: center;
+}
+</style>
+<style type="text/css">
+.boxhelp {
+	background-color: #A9CDDB;
+	border: 1px solid #FFFFFF;
+	height: 15px;
+	width: 300px;
+	padding: 5px;
+	display: none;
+	position: absolute;
+	text-align: left;
+}
+.changeButtonUI:hover {
+	font-family: Courier New;
+	color: #ffffff;
+	font-size: 12px;
+	text-decoration: none;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	-webkit-box-shadow: 0px 2px 9px #666666;
+	-moz-box-shadow: 0px 2px 9px #666666;
+	box-shadow: 0px 2px 9px #666666;
+	text-shadow: 0px 0px 5px #666666;
+	border: solid #121011 1px;
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #3d94f6
+		), color-stop(1, #1e62d0) ); background : -moz-linear-gradient( center
+	top, #3d94f6 5%, #1e62d0 100%); filter : progid :
+	DXImageTransform.Microsoft.gradient ( startColorstr = '#3d94f6',
+	endColorstr = '#1e62d0');
+	height: 23px;
+	background: -moz-linear-gradient(center top, #3d94f6 5%, #1e62d0 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#3d94f6',
+		endColorstr='#1e62d0' );
+}
+</style>
+<script type="text/javascript" language="JavaScript">
+	var cX = 0;
+	var cY = 0;
+	var rX = 0;
+	var rY = 0;
+	function UpdateCursorPosition(e) {
+		cX = e.pageX;
+		cY = e.pageY;
+	}
+	function UpdateCursorPositionDocAll(e) {
+		cX = event.clientX;
+		cY = event.clientY;
+	}
+	if (document.all) {
+		document.onmousemove = UpdateCursorPositionDocAll;
+	} else {
+		document.onmousemove = UpdateCursorPosition;
+	}
+	function AssignPosition(d) {
+		if (self.pageYOffset) {
+			rX = self.pageXOffset;
+			rY = self.pageYOffset;
+		} else if (document.documentElement
+				&& document.documentElement.scrollTop) {
+			rX = document.documentElement.scrollLeft;
+			rY = document.documentElement.scrollTop;
+		} else if (document.body) {
+			rX = document.body.scrollLeft;
+			rY = document.body.scrollTop;
+		}
+		if (document.all) {
+			cX += rX;
+			cY += rY;
+		}
+		d.style.left = (cX + 10) + "px";
+		d.style.top = (cY + 10) + "px";
+	}
+	function HideText(d) {
+		if (d.length < 1) {
+			return;
+		}
+		document.getElementById(d).style.display = "none";
+	}
+	function ShowText(d) {
+		if (d.length < 1) {
+			return;
+		}
+		var dd = document.getElementById(d);
+		AssignPosition(dd);
+		dd.style.display = "block";
+	}
+	function ReverseContentDisplay(d) {
+		if (d.length < 1) {
+			return;
+		}
+		var dd = document.getElementById(d);
+		AssignPosition(dd);
+		if (dd.style.display == "none") {
+			dd.style.display = "block";
+		} else {
+			dd.style.display = "none";
+		}
+	}
+</script>
+</head>
+<body>
+	<div style="margin-left: 40px;">
+	 <br>
+		<table class="hovertable1">
+			<tr>
+				<td>Name: <logic:notEmpty name="profilename" scope="request">
+						<b><bean:write name="profilename" scope="request" /></b>
+					</logic:notEmpty>
+				</td>
+			</tr>
+		</table>
+		<br>
+		<div style="color:#616D7E;text-decoration: underline;font-stretch:expanded ;text-align: center;font-size: 16px;height: 30px;font-weight: bold;">Change Your Password</div>
+
+		<table>
+		  <tr>
+		  <td align="left">
+		  <div style="margin-left: 130px;"><html:errors /></div>
+		  </td></tr>
+		  
+			<tr>
+				<td align="left">
+				<html:form action="AddUserAction" method="post">
+						<html:hidden property="userId" value="1" />
+						<table class="hovertable1">
+						<tr height="40">
+						<td align="left"> <FONT color="#FF0000">*</FONT>Current Password:</td>
+                          <td> <html:password property="passWord" value="" size="35"></html:password></td>
+                         
+                          </tr>
+                          <tr height="40">
+				
+                          <td align="left"><FONT color="#FF0000">*</FONT>New Password:</td><td><html:password property="newPassword" value="" size="35"></html:password>
+							</td>
+							<td colspan="2"><img src="./img/help.gif" onmouseover="ShowText('Message'); return true;" onmouseout="HideText('Message'); return true;"
+															href="javascript:ShowText('Message')">
+															<div id="Message" class="boxhelp">
+																<font color="#00004B"> Please type new password upto 5 to 12 character </font>
+															</div>
+							</td>
+							
+							</tr>
+						<tr height="40">
+						<td align="left">
+                         <FONT color="#FF0000">*</FONT>Confirm Password:</td><td><html:password property="confirmPassword" value="" size="35"></html:password>
+                         </td>
+                         <td colspan="2"><img src="./img/help.gif" onmouseover="ShowText('Message1'); return true;" onmouseout="HideText('Message1'); return true;"
+															href="javascript:ShowText('Message1')">
+															<div id="Message1" class="boxhelp">
+																<font color="#00004B"> Please Re-type your new password here </font>
+															</div>
+							</td>
+                         
+                         
+                         </tr>
+                        <tr height="20"><td></td>
+                        <td align="left" colspan="1">
+						<input type="button" class="changeButtonUI" value="Change" onclick="submitReport('AddUserAction444.do?method=passwordChanged');" style="font-family: verdana, arial, sans-serif;font-size: 11px;"/>
+						<input type="button" class="changeButtonUI" value="Back" onclick="submitReport('AddUserAction3.do?method=goChangePassword');" style="font-family: verdana, arial, sans-serif;font-size: 11px;"/>
+						</td>
+						</tr>
+						</table>
+				</html:form>
+				</td>
+			</tr>
+		</table>
+	</div>
+</body>
+</html>

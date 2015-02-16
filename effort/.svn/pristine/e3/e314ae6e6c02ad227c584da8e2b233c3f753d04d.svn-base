@@ -1,0 +1,27 @@
+package com.calsoft.user.model;
+
+public class UserTask 
+{
+	private String time;
+	private String task_date;
+	private String status;
+	public String getTime() {
+		return time;
+	}
+	public void setTime(String time) {
+		this.time = time;
+	}
+	public String getTask_date() {
+		return task_date;
+	}
+	public void setTask_date(String task_date) {
+		this.task_date = task_date;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	
+}

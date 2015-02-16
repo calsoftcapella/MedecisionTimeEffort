@@ -1,0 +1,23 @@
+#admin details
+userInfo_userId=5027
+adminAccountUsername=Raghavi
+admimEmail=raghavinath.ravindranath@calsoftlabs.com
+adminEmailUsername=raghavinath.ravindranath@calsoftlabs.com
+adminEmailPassword=pass##$$
+
+#Mail server detail
+host_name=linmail.calsoftlabs.com
+port_number=465
+
+#Account Manager details
+account_manager_name=Hem
+account_manager_id=hemachandranb@calsoftlabs.com
+account_manager_userId=5020
+
+#Dev Manager Details
+dev_manager_email=Shesathiri.govindan@calsoftlabs.com
+dev_manager_id=5095
+
+#Holiday details
+holidayListForBangalore=01/01/2013, 14/01/2013, 26/01/2013, 29/03/2013, 11/04/2013, 01/05/2013, 15/08/2013, 09/09/2013, 02/10/2013, 14/10/2013, 01/11/2013, 25/12/2013
+holidayListForChennai=01/01/2013, 14/01/2013, 26/01/2013, 29/03/2013, 01/05/2013, 15/08/2013, 09/09/2013, 02/10/2013, 01/11/2013, 25/12/2013

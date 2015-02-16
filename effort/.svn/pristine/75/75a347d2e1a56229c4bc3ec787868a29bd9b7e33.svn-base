@@ -1,0 +1,178 @@
+package com.calsoft.task.action;
+
+import java.util.List;
+
+import java.util.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.struts.action.ActionForm;
+import org.apache.struts.action.ActionForward;
+import org.apache.struts.action.ActionMapping;
+import org.apache.struts.actions.DispatchAction;
+
+import com.calsoft.task.form.TaskForm;
+import com.calsoft.task.model.Task;
+import com.calsoft.task.service.SaveTaskService;
+import com.calsoft.task.service.factory.SaveTaskServiceFactory;
+import com.calsoft.user.model.User;
+import com.calsoft.user.service.UserServiceImpl;
+
+
+
+public class TaskAction extends DispatchAction{
+	Task task=new Task();
+	public ActionForward save(ActionMapping mapping,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService=SaveTaskServiceFactory.getSaveTaskService();
+		
+		System.out.println("taskform."+taskForm.getBacklog_id());
+		saveTaskService.saveTask(taskForm);
+		Collection<Object> coll = UserServiceImpl.getUserNames();
+		Iterator itr = coll.iterator();
+		ArrayList<Object> list = (ArrayList) coll;
+		ArrayList<Object> list1 = new ArrayList<Object>();
+		int i=0;
+		while (itr.hasNext()&& i<list.size()) 
+		{
+			list1.add(new User(list.get(i),list.get(i+1)));
+			i=i+2;		
+		}
+		
+		request.setAttribute("list", list1);
+		return mapping.findForward("success");
+	}
+	
+	public ActionForward saveEdit(ActionMapping mapping,ActionForm form,HttpServletRequest request,HttpServletResponse response)throws Exception{
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService=SaveTaskServiceFactory.getSaveTaskService();
+		
+		System.out.println("taskform."+taskForm.getId());
+		System.out.println("taskform. back log id is:"+taskForm.getBacklog_id());
+		saveTaskService.editsaveTask(taskForm);
+		Collection<Object> coll = UserServiceImpl.getUserNames();
+		Iterator itr = coll.iterator();
+		ArrayList<Object> list = (ArrayList) coll;
+		ArrayList<Object> list1 = new ArrayList<Object>();
+		int i=0;
+		while (itr.hasNext()&& i<list.size()) 
+		{
+			list1.add(new User(list.get(i),list.get(i+1)));
+			i=i+2;		
+		}
+		
+		request.setAttribute("list", list1);
+		
+		return mapping.findForward("success");
+	}
+	
+	public ActionForward getTaskDeatils(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+	       TaskForm taskForm = (TaskForm) form;
+		   List<TaskForm> tList = null;
+		  // String userId=taskForm.getUser().getUser_id();
+		  /* User user=new User();
+		   int user_id=user.getUser_id();*/
+		   //int userId=Integer.parseInt(request.getParameter("userIdValue"));
+		   
+		   int userId=taskForm.getUserId();
+		   System.out.println("User_id=-----"+userId);
+		SaveTaskService saveTaskService = 
+				SaveTaskServiceFactory.getSaveTaskService();
+		try {
+			BeanUtils.copyProperties(task, taskForm);
+		} catch (Exception e) {
+			System.out.println("Exception occur in execute(): " + e);
+		}
+		tList = saveTaskService.getTaskDetails(userId);
+		Collection<Object> coll = UserServiceImpl.getUserNames();
+		Iterator itr = coll.iterator();
+		ArrayList<Object> list = (ArrayList) coll;
+		ArrayList<Object> list1 = new ArrayList<Object>();
+		int i=0;
+		while (itr.hasNext()&& i<list.size()) 
+		{
+			list1.add(new User(list.get(i),list.get(i+1)));
+			i=i+2;		
+		}
+		
+		request.setAttribute("list", list1);
+		request.setAttribute("tList", tList);
+		return mapping.findForward("success");
+	}
+	
+	public ActionForward editTask(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+	       TaskForm taskForm = (TaskForm) form;
+	       int id = Integer.parseInt(request.getParameter("id"));
+			System.out.println("taskId= " + id);
+			
+			SaveTaskService saveTaskService1 = 
+					SaveTaskServiceFactory.getSaveTaskService();
+		List<TaskForm> taskFormList=saveTaskService1.editTask(id);
+		Iterator<TaskForm> itr1=taskFormList.iterator();
+		
+		TaskForm taskformValue=null;
+		while(itr1.hasNext())
+		{
+			taskformValue=itr1.next();
+		}
+	    		
+System.out.println("user id inside edit option is:"+taskformValue.getUserId());
+	       request.setAttribute("taskList", taskformValue);
+	     
+	       System.out.println(" Id value is edit............"+taskformValue.getId());
+	       Collection<Object> coll = UserServiceImpl.getUserNames();
+			Iterator itr = coll.iterator();
+			ArrayList<Object> list = (ArrayList) coll;
+			ArrayList<Object> list1 = new ArrayList<Object>();
+			int i=0;
+			while (itr.hasNext()&& i<list.size()) 
+			{
+				list1.add(new User(list.get(i),list.get(i+1)));
+				i=i+2;		
+			}
+			
+			request.setAttribute("list", list1);
+			
+	       return mapping.findForward("prepareToEdit");
+	}
+	
+	
+	public ActionForward deleteTask(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+		  List<TaskForm> tList = null;
+		TaskForm taskForm=(TaskForm)form;
+		SaveTaskService saveTaskService = 
+				SaveTaskServiceFactory.getSaveTaskService();
+		int id = Integer.parseInt(request.getParameter("id"));
+		System.out.println("taskId= " + id);
+		boolean wIdList = saveTaskService.doDelete(id);
+		System.out.println("delete wIdList= " + wIdList);
+		SaveTaskService saveTaskService1 = 
+				SaveTaskServiceFactory.getSaveTaskService();
+		try {
+			BeanUtils.copyProperties(task, taskForm);
+		} catch (Exception e) {
+			System.out.println("Exception occur in execute(): " + e);
+		}
+		tList = saveTaskService.getTaskDetails(taskForm.getUserId());
+		Collection<Object> coll = UserServiceImpl.getUserNames();
+		Iterator itr = coll.iterator();
+		ArrayList<Object> list = (ArrayList) coll;
+		ArrayList<Object> list1 = new ArrayList<Object>();
+		int i=0;
+		while (itr.hasNext()&& i<list.size()) 
+		{
+			list1.add(new User(list.get(i),list.get(i+1)));
+			i=i+2;		
+		}
+		
+		request.setAttribute("list", list1);
+		
+		request.setAttribute("tList", tList);
+		return mapping.findForward("success");
+	}
+}

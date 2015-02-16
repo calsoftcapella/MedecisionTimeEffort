@@ -1,0 +1,44 @@
+#container {
+    position: relative;
+    width:850px;
+    height:auto;
+      }
+#header {
+    width:70%;
+    height:50px;
+    padding:10px;
+}
+table.resource {
+display: table;
+align: left;
+
+border-width: 1px;
+border-style: solid;
+border-collapse:collapse;
+}
+
+table.resource th {
+display: table-cell;
+border-width: 1px;
+
+border-style: solid;
+}
+
+
+table.resource td {
+display: table-cell;
+border-width: 1px;
+
+border-style: solid;
+}
+table.resource tr {
+display: table-row;
+border-width: 1px;
+border-style: solid;
+}
+body {
+    font: normal 10px Verdana, Arial, sans-serif;
+}
+
+
+
